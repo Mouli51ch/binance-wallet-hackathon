@@ -1,0 +1,147 @@
+<title>Human Pulse</title>
+<meta name="description" content="One forecast per Binance Agent ID per day: a low, middle and high for BNB, sent by your agent and scored on-chain against Chainlink at 00:00 UTC.">
+<meta property="og:title" content="Human Pulse: daily BNB forecasts from verified humans">
+<meta property="og:description" content="A crowd forecast bots cannot fake: one forecast per Agent ID, scored on-chain against Chainlink.">
+<meta name="theme-color" content="#000000">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/sublevel.css">
+<link rel="stylesheet" href="src/page.css">
+<a class="skip" href="#top">Skip to content</a>
+<canvas id="vhs-overlay" aria-hidden="true"></canvas>
+
+<nav class="topbar" aria-label="Main">
+  <div class="topbar__in">
+    <i class="cnr tl" aria-hidden="true"></i><i class="cnr tr" aria-hidden="true"></i><i class="cnr bl" aria-hidden="true"></i><i class="cnr br" aria-hidden="true"></i>
+    <a class="wordmark" href="#top">human pulse<i>.</i></a>
+    <div class="topbar__links">
+      <a href="#how">How it works</a>
+      <a href="#forecast">Forecast</a>
+      <a href="#rules">Rules</a>
+    </div>
+    <a class="topbar__cta" href="#join"><span class="led" aria-hidden="true"></span>Join the daily forecast</a>
+  </div>
+</nav>
+
+<div id="layout">
+<div class="vrules" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<main>
+  <section class="grid-layout hero" id="top">
+    <div class="eyebrow"><span>Human Pulse: daily BNB forecast</span><hr class="rule" data-line><span>Nov 2026</span></div>
+    <article>
+      <div class="framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><h1 class="f-h0" data-ps>A daily BNB forecast that only verified humans can make</h1></div>
+      <div class="framed lede"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><p class="f-h4" data-ps>One forecast per Binance Agent ID per day. Your agent sends a low, a middle and a high for tomorrow's BNB price, and at 00:00 UTC the contract scores it on-chain against Chainlink.</p></div>
+      <div class="hero__actions">
+        <a class="framed label act act--on" href="#join"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>Join the daily forecast</span></a>
+        <a class="framed label act" href="#forecast"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>See how scoring works</span></a>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid-layout caps" id="how">
+    <h2 class="f-h3" data-ps>How it works</h2>
+    <hr class="rule topline" data-line>
+    <div class="big"><p class="f-h1" data-ps>Five hundred wallets are still one person.</p></div>
+    <div class="cols"><div class="inner">
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>Verify</h3>
+        <p data-ps>The contract only takes a forecast from a wallet that holds a Binance Agent ID: one per user, never transferable.</p>
+        <div class="tags" data-ps><span>balanceOf &gt; 0</span><span>1 per UTC day</span></div>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>Lock</h3>
+        <p data-ps>Your agent sends a hash of tomorrow's forecast and reveals the numbers once that day starts, so nobody can copy it in time.</p>
+        <div class="tags" data-ps><span>commit</span><span>reveal</span><span>1 confirm a day</span></div>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>Settle</h3>
+        <p data-ps>At 00:00 UTC anyone can settle the day with the Chainlink BNB/USD round that was current at midnight. The contract checks it.</p>
+        <div class="tags" data-ps><span>Chainlink BNB/USD</span><span>BSC mainnet</span></div>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>Score</h3>
+        <p data-ps>Each number is scored with pinball loss and compared with a no-change baseline. Your record is public and cannot be edited.</p>
+        <div class="tags" data-ps><span>pinball loss</span><span>skill vs baseline</span></div>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="grid-layout caps" id="forecast">
+    <h2 class="f-h3" data-ps>The forecast</h2>
+    <hr class="rule topline" data-line>
+    <div class="big"><p class="f-h1" data-ps>Three numbers for tomorrow. Scored at midnight.</p></div>
+    <div class="cols"><div class="inner inner--two">
+      <div class="framed sheet"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div class="sheet__head" data-ps><span>Forecast for Tue 25 Nov, UTC</span><span class="pill">Example</span></div>
+        <dl class="sheet__rows">
+          <div data-ps><dt>Low, p10</dt><dd>−2.4%</dd></div>
+          <div data-ps><dt>Middle, p50</dt><dd>+0.3%</dd></div>
+          <div data-ps><dt>High, p90</dt><dd>+2.9%</dd></div>
+          <div data-ps><dt>Sent on-chain as</dt><dd>0x9f3a…e1c7</dd></div>
+          <div data-ps><dt>Numbers revealed</dt><dd>after 00:00 UTC</dd></div>
+        </dl>
+      </div>
+      <div class="framed sheet"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <pre class="formula" data-ps aria-label="Pinball loss: for each of the three numbers, q times y minus x when the result is at or above it, otherwise one minus q times x minus y. The three are added; lower is better.">loss_q = q × (y − x)        if y ≥ x
+       (1 − q) × (x − y)    if y &lt; x
+loss   = loss_0.1 + loss_0.5 + loss_0.9</pre>
+        <p class="sheet__note" data-ps>A wide, safe range loses points every day. A narrow one loses more when it misses. So the best strategy is to report what you believe.</p>
+        <p class="sheet__note" data-ps>A forecast you lock and never reveal scores twice the baseline's loss.</p>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="grid-layout caps" id="rules">
+    <h2 class="f-h3" data-ps>Rules and limits</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner">
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>Not financial advice</h3>
+        <p data-ps>A forecasting signal and a public record. Nothing here tells you to buy or sell, and no returns are promised.</p>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>No funds held</h3>
+        <p data-ps>You pay BNB Chain gas for one transaction a day. The contract has no owner, admin, pause or upgrade.</p>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>BNB only, one day ahead</h3>
+        <p data-ps>One asset and one horizon for now. More come only after the first month of real results.</p>
+      </div>
+      <div class="cap framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <h3 class="f-h4" data-ps>No names shown</h3>
+        <p data-ps>The board lists shortened addresses and their records, never Agent ID names.</p>
+      </div>
+    </div></div>
+  </section>
+
+  <section class="grid-layout contact" id="join">
+    <div class="box framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <h2 class="f-h3" data-ps>Join</h2>
+      <p class="lead f-h2" data-ps>Make your first forecast in four steps.</p>
+      <ol class="steps">
+        <li data-ps><b>Claim an Agent ID</b> in the Binance App, from the banner in Wallet.</li>
+        <li data-ps><b>Turn on Developer Mode</b> for your Agentic Wallet. Your agent cannot do this for you.</li>
+        <li data-ps><b>Add the Human Pulse skill</b> to your agent.</li>
+        <li data-ps><b>Ask for today's forecast,</b> read the preview, confirm it in Binance.</li>
+      </ol>
+      <div class="prompt">
+        <code id="prompt-text" data-ps><span class="dim">you@agent:~$</span> Make my daily BNB forecast with the Human Pulse skill.</code>
+        <button type="button" class="copy" data-copy="#prompt-text">Copy the prompt</button>
+      </div>
+      <p class="join__repo" data-ps><a href="https://github.com/Mouli51ch/binance-wallet-hackathon">Get the agent skill on GitHub</a></p>
+    </div>
+  </section>
+</main>
+
+<footer class="foot grid-layout">
+  <hr class="rule" data-line>
+  <p class="wordmark wordmark--big">human pulse<i>.</i></p>
+  <p class="foot__risk">Forecasting signal only. Not financial advice. No returns are promised.</p>
+  <p class="foot__legal">© 2026 Human Pulse. Price data from Chainlink on BNB Smart Chain. Agent ID is a Binance Wallet product; this project is independent of Binance. Particle scroll and layout system from ThreeUI.</p>
+</footer>
+</div>
+
+<script src="vendor/particle-scroll.js"></script>
+<script src="src/sublevel-fx.js"></script>
+<script src="src/page.js"></script>
