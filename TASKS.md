@@ -223,7 +223,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, forge test output summary>
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: docs/agentic-wallet.md
