@@ -290,13 +290,13 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 ; Finding: submit (reveal + commit + score) costs 123,594 gas median, 174,707 max on the fork; 5 real holders x 5 scored days; fresh address refused; settles on real Chainlink rounds replayed with whole-day shifts
 
 ### T-A08, Live-contract fork end-to-end with the real skill
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-a08-live-fork
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/28 | Owner: Mouli | Branch: feature/t-a08-live-fork
 - Suggested: Mouli
 - Depends-on: T-A05, T-C01, T-A07
 - Touches: fork/, deployments/fork.json
 - Serves: Completion (judged) ; Agent ID depth (judged)
 - Acceptance: 1 command forks BSC mainnet at its head with the deployed PulseForecast from deployments/mainnet.json (not a new deploy), swaps the Chainlink BNB/USD feed for a test feed on the fork only, has at least 3 real Agent ID holder addresses (impersonated on the fork only) forecast through skills/human-pulse/pulse.mjs prepare, moves the fork's clock day by day, settles, and ends with at least 5 scored days per holder; writes deployments/fork.json; the website shows the scores; nothing touches mainnet and no key is used
-- Evidence: <PR link, scores shown on the site>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/28 ; Finding: the deployed contract and real pulse.mjs calldata scored 4 real holders x 5 days on the fork (submit 123,409 gas median, 174,522 max); the site ranked all 4 and showed 6 settled days; a fork needs the feed swapped because it gets no new Chainlink rounds, and the proxy's storage slot 1 must be cleared or the test feed's latest round reads garbage
 
 ### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
 - Status: done
