@@ -1,4 +1,4 @@
-/* Human Pulse additions, written in the Sublevel vocabulary (tokens and frames from sublevel.css). */
+/* Kodo additions, written in the Sublevel vocabulary (tokens and frames from sublevel.css). */
 .skip{position:fixed;left:16px;top:-60px;z-index:3000;padding:8px 14px;background:var(--o);color:#000;font:600 13px/1 var(--mono);text-decoration:none}
 .skip:focus{top:12px}
 a{color:inherit}
@@ -44,6 +44,30 @@ main{padding-bottom:40px}
 .formula{margin:0;font:400 14px/1.75 var(--mono);color:var(--o);white-space:pre;overflow-x:auto}
 .sheet__note{color:var(--w2);font-weight:500}
 
+/* hero: the ThreeUI CRT terminal is a framed monitor beside the copy, never under it.
+   Desktop: copy in columns 1-7, monitor in 8-12. Below 1024px it stacks under the buttons.
+   The frame grades the green phosphor to a single amber tone so it reads in the site's
+   orange (--o, #ff4d00); the component's own props stay as configured. */
+.crt-monitor{grid-column:1/-1;margin-top:32px;padding:10px;background:#000}
+.crt-monitor .shader-frame{position:relative;aspect-ratio:4/3;overflow:hidden;
+  filter:grayscale(1) sepia(1) saturate(4.2) hue-rotate(-24deg) brightness(1.08) contrast(1.08)}
+@media (min-width:1024px){
+  .hero article{grid-column:1/8}
+  /* as tall as the copy column, so the 19-line log types at a readable size */
+  .crt-monitor{grid-column:8/13;margin-top:0;align-self:stretch;display:flex;flex-direction:column}
+  .crt-monitor .shader-frame{flex:1;aspect-ratio:auto;min-height:420px}
+}
+
+/* live data: today, yesterday, leaderboard */
+.inner--one .sheet{grid-column:1/-1}
+.board-scroll{overflow-x:auto}
+.board{width:100%;border-collapse:collapse;font:500 14px/1.4 var(--mono);color:var(--w1)}
+.board caption{caption-side:bottom;text-align:left;padding-top:12px;color:var(--g1);font:500 12px/1.5 var(--mono)}
+.board th{text-align:left;font-weight:500;color:var(--g1);padding:0 12px 10px 0;white-space:nowrap}
+.board td{padding:10px 12px 10px 0;border-top:1px solid var(--line);white-space:nowrap}
+.board .up{color:var(--o)}
+.board .down{color:var(--g1)}
+
 /* join */
 .contact .steps{position:relative;grid-column:span 8;grid-row:3;list-style:none;margin:8px 0 0;padding:0;counter-reset:s}
 .steps li{counter-increment:s;position:relative;padding:14px 0 14px 44px;border-top:1px solid var(--line);color:var(--w2);font-weight:500}
@@ -80,4 +104,13 @@ main{padding-bottom:40px}
   .topbar__cta{font-size:10.5px;padding:0 9px;gap:6px;height:32px;letter-spacing:0;white-space:nowrap}
   .hero .eyebrow > span:last-child,.hero .eyebrow .rule{display:none}
   .caps .cols .inner{grid-template-columns:minmax(0,1fr)}
+  .board{font-size:13px}
+  .board th,.board td{padding-right:8px}
+  .board .wide{display:none}
 }
+
+/* T-B02: the live crowd band line under the hero copy */
+.hero__band{margin:0;font:500 13px/1.5 var(--mono);color:var(--o);letter-spacing:.02em}
+
+/* T-B04: the way into the app from the landing page */
+.topbar__links a.topbar__app{color:var(--o)}
