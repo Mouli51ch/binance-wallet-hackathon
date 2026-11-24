@@ -263,7 +263,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
-- Status: claimed | Owner: Jishnu | Branch: feature/t-a03-deploy
+- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a03-deploy
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
 - Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
@@ -312,7 +312,7 @@ Tick in a `board/` PR as items land.
 # P2, Nov 25. Go/no-go day.
 
 ### T-A05, Final name, mainnet deploy and verify
-- Status: claimed | Owner: Jishnu | Branch: feature/t-a05-mainnet
+- Status: in-review PR 18 | Owner: Jishnu | Branch: feature/t-a05-mainnet
 - Suggested: Jishnu
 - Depends-on: T-A02, OP-2, OP-3
 - Touches: contracts/script/, deployments/mainnet.json
