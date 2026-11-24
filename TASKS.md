@@ -317,13 +317,13 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 ; commit hash matches the deployed mainnet contract on 2 vectors; mainnet-fork end to end against the deployed bytecode (no testnet key here, so no testnet tx) ; Finding: commit costs 77,451 gas and reveal plus commit 135,242; a commit confirmed after 00:00 UTC is filed for the wrong day and can never be revealed, so prepare prints sendBefore and refuses in the last 10 minutes
 
 ### T-C02, Skill read mode: anyone asks what the crowd expects
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-c02-skill-read
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/29 | Owner: Mouli | Branch: feature/t-c02-skill-read
 - Suggested: Mouli
 - Depends-on: T-C01, T-A05
 - Touches: skills/human-pulse/
 - Serves: Practicality (judged) ; Agent ID depth (judged)
 - Acceptance: someone without an Agent ID, wallet or Developer Mode asks their agent what the Kodo crowd expects for BNB and gets 1 plain line from the live contract (the crowd's range and middle in % and in dollars at the live Chainlink price, yesterday's result against a typical day, the risk line); `SKILL.md` splits reading (anyone) from forecasting (Agent ID holders) and the read path runs no `baw` command; the line's wording has 1 test
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/29 ; Finding: before anyone opens a forecast the crowd line can only say none are open yet, because sealed forecasts reveal nothing but their count; dollar levels come from the contract's own feed() so they match what scoring uses
 
 ### T-F03, Developer Mode can call a custom contract on mainnet
 - Status: open
