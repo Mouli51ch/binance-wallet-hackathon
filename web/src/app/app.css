@@ -106,6 +106,15 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .td-clock b{color:var(--w1);font-weight:600;font-variant-numeric:tabular-nums}
 .td-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
 .td-actions .arrow{align-self:center}
+.td-price{margin-left:14px}
+.join-card{border-color:rgba(255,77,0,.45)}
+.join-card .prompt{grid-column:auto;grid-row:auto;margin-top:0}
+.join-foot{font-size:14px;color:var(--g1)}
+.join-foot a{color:var(--w1);text-decoration:underline;text-underline-offset:3px}
+.fc-how{border:1px solid var(--line);padding:14px 18px}
+.fc-how summary{cursor:pointer;font:600 14px/1 var(--sans);color:var(--w1)}
+.fc-how[open] summary{margin-bottom:12px}
+.fc-how .note{margin-top:10px}
 
 /* make a forecast: one sentence that says what you are forecasting, quick starts, three plain sliders */
 .fc-main{gap:22px}
