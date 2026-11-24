@@ -299,7 +299,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, fork screenshots>
 
 ### T-C01, Agent skill and pulse.mjs
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-c01-agent-skill
 - Suggested: Mouli
 - Depends-on: T-F02, T-A01
 - Touches: skills/human-pulse/
