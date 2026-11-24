@@ -35,36 +35,31 @@ export async function bnbPrice() {
 /**
  * The Chainlink round that was current at time t (the last one updated at or before t), the way
  * PulseForecast.settle() checks it. getRound(id) resolves { id, answer, updatedAt } or null.
- * Searches back from the latest round in its phase: a few steps, then a binary search.
- * Null when t is before the phase's first round.
+ * Guesses from the feed's latest spacing, then reads a window of rounds around the guess at once
+ * (one batched request), widening only if the guess missed. Null when t is before the phase began.
  */
 export async function findRoundAt(getRound, latestId, t) {
   const phase = (latestId >> 64n) << 64n
   const agg = latestId - phase
-  const ok = async (n) => { const r = n >= 1n ? await getRound(phase | n) : null; return r && r.updatedAt <= t ? r : null }
-  const last = await getRound(latestId)
+  const at = (n) => (n >= 1n && n <= agg ? getRound(phase | n) : Promise.resolve(null))
+  const [last, prev] = await Promise.all([at(agg), at(agg - 1n)])
   if (last && last.updatedAt <= t) return last
-  // guess from the latest round's spacing (this feed updates about every 30 min), then refine
-  const prev = agg > 1n ? await getRound(phase | (agg - 1n)) : null
-  const gap = last && prev ? Math.max(1, last.updatedAt - prev.updatedAt) : 0
-  let hi = agg, lo = null, from = agg
-  if (gap) {
-    const guess = agg - BigInt(Math.ceil((last.updatedAt - t) / gap))
-    if (guess >= 1n && await ok(guess)) {
-      lo = guess
-      for (let step = 1n; lo + step < hi; step *= 2n) { if (await ok(lo + step)) lo += step; else { hi = lo + step; break } }
-    } else if (guess >= 1n) { hi = guess; from = guess }
+  const gap = last && prev ? Math.max(1, last.updatedAt - prev.updatedAt) : 1800
+  const clamp = (n) => (n < 1n ? 1n : n > agg ? agg : n)
+  let center = clamp(last ? agg - BigInt(Math.ceil((last.updatedAt - t) / gap)) : agg)
+  for (let span = 8n; span < 4n * agg + 64n; span *= 4n) {
+    const from = clamp(center - span), to = clamp(center + span)
+    const ids = []
+    for (let n = from; n <= to; n++) ids.push(n)
+    const rs = (await Promise.all(ids.map(at))).filter(Boolean)
+    const before = rs.filter((r) => r.updatedAt <= t)
+    const best = before[before.length - 1]
+    const after = rs.find((r) => r.updatedAt > t)
+    if (best && after) return best
+    if (!best && from === 1n) return null
+    center = best ? clamp(to + span) : clamp(from - span) // all after t: look earlier; all before: later
   }
-  for (let step = 1n; lo === null && step <= from; step *= 2n) {
-    if (await ok(from - step)) { lo = from - step; break }
-    hi = from - step
-  }
-  if (lo === null) { if (!(await ok(1n))) return null; lo = 1n }
-  while (hi - lo > 1n) {
-    const mid = (lo + hi) / 2n
-    if (await ok(mid)) lo = mid; else hi = mid
-  }
-  return getRound(phase | lo)
+  return null
 }
 
 const RACE_ABI = parseAbi([
@@ -94,7 +89,17 @@ export async function raceData({ rpc, contract, today }) {
   }
   const t0 = today * 86400
   let open = recorded > 0n ? recorded : null, openId = null
-  if (!open) { const r = await findRoundAt(getRound, latest[0], t0); if (r) { open = r.answer; openId = r.id } }
+  const KEY = `kodo:open:${String(feed).toLowerCase()}:${today}`
+  if (!open) {
+    try { const c = JSON.parse(localStorage.getItem(KEY)); if (c?.id && c?.answer) { openId = BigInt(c.id); open = BigInt(c.answer) } } catch {}
+  }
+  if (!open) {
+    const r = await findRoundAt(getRound, latest[0], t0)
+    if (r) {
+      open = r.answer; openId = r.id
+      try { localStorage.setItem(KEY, JSON.stringify({ id: String(r.id), answer: String(r.answer) })) } catch {}
+    }
+  }
   if (!open || open <= 0n) return null
   const usd = (a) => Number(a) / 10 ** Number(decimals)
   const bps = (a) => Number(((a - open) * 10000n) / open)

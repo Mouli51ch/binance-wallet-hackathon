@@ -24,3 +24,11 @@ test('raceVerdict: is BNB inside what people expect, and how many are on target'
   assert.deepEqual(raceVerdict(350, crowd, 320, people), { zone: 'high', typical: 'out', onTarget: 1, of: 3 })
   assert.deepEqual(raceVerdict(-500, null, 320, []), { zone: null, typical: 'out', onTarget: 0, of: 0 })
 })
+
+test('findRoundAt still finds the round when the feed spacing is uneven', async () => {
+  // round n updated at 1000 + n*n: the latest gap (199 s) badly misjudges the early rounds
+  const uneven = async (id) => { const n = Number(id - PHASE); return n >= 1 && n <= 100 ? { id, answer: 1n, updatedAt: 1000 + n * n } : null }
+  assert.equal((await findRoundAt(uneven, PHASE | 100n, 1500)).id, PHASE | 22n) // 22 at 1484, 23 at 1529
+  assert.equal((await findRoundAt(uneven, PHASE | 100n, 1000)), null) // round 1 is at 1001
+  assert.equal((await findRoundAt(uneven, PHASE | 100n, 10900)).id, PHASE | 99n) // 99 at 10801, 100 at 11000
+})
