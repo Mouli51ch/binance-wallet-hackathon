@@ -9,7 +9,8 @@
     "dev:fork": "vite --mode fork",
     "build": "node --test test/*.test.js && vite build",
     "preview": "vite preview",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "snapshot": "node scripts/snapshot.mjs"
   },
   "dependencies": {
     "viem": "2.58.6"
