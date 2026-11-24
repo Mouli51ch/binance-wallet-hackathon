@@ -25,3 +25,22 @@ Measured on 2026-11-24: `submit` with reveal, commit and score costs 123,594 gas
 
 Options: `BSC_RPC_URL` (mainnet RPC to read and fork, default publicnode), `FORK_PORT` (default 8545).
 Nothing signs with a private key and nothing is sent to mainnet.
+
+## The live contract, end to end (T-A08)
+
+`node live.mjs` (or `npm run live`) runs the **deployed** mainnet PulseForecast from
+`deployments/mainnet.json` instead of a new deploy, and sends what the real Kodo skill builds:
+
+1. forks BSC mainnet at its head on port 8547 (`FORK_PORT` to change it)
+2. swaps the Chainlink BNB/USD feed for a test feed on the fork only (a fork gets no new rounds);
+   the day's moves are made up and printed, starting from the real price now
+3. finds 4 real Agent ID holders with nothing locked for tomorrow (`HOLDERS` to change it) and
+   impersonates them on the fork only
+4. for 6 simulated days: moves the clock to 01:00 UTC, settles the day before, and each holder
+   runs `skills/human-pulse/pulse.mjs prepare` and sends the calldata it prints; on the last day
+   one holder skips, so the site shows a sealed tile
+5. checks every holder has 5 scored days and writes `deployments/fork.json`
+
+Needs Foundry, `CONTRACTS_DIR` pointing at a checkout with `contracts/` (for the test feed's
+bytecode) and `npm install` in `skills/human-pulse`. Nothing is signed with a key and nothing is
+sent to mainnet. Then, in `web/`: `npm run dev:fork`.
