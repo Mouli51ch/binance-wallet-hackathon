@@ -356,13 +356,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <Actions run links, settle tx hashes>
 
 ### T-B03, Website live on Vercel against mainnet
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/23 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
 - Suggested: Mouli
 - Depends-on: T-B02, T-A05, OP-7
 - Touches: web/, vercel.json
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: public Vercel URL shows mainnet data with the crowd band as the hero; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
-- Evidence: <URL>
+- Evidence: https://kodo-forecast.vercel.app reads mainnet PulseForecast 0xa6EE7846434C385847B4e79EF529531a1124FfF6, 0 console errors; Lighthouse accessibility not measured yet ; Finding: on day one nothing is revealed, so the hero must count tomorrow's locked forecasts or it reads "no forecasts" while one exists
 
 # P3, Nov 26. Last day with Claude.
 
