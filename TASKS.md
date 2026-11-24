@@ -233,13 +233,13 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b01-web-scaffold
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/5 | Owner: Mouli | Branch: feature/t-b01-web-scaffold
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: Vite + viem static site with 5 sections from `docs/ARCHITECTURE.md` section 7 (today, yesterday, leaderboard, how to join, footer with risk warning) rendering from a mock data file; 0 wallet-connect code; 0 `name.ai` names; addresses shortened; works at 375 px wide; `npm run build` passes
-- Evidence: <PR link, screenshot>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/5 ; Finding: 5 sections render from sample data; page is 375 px wide at 375 px with no sideways scroll; build runs 3 model tests then builds in about 0.2 s; Vite drops the 3 classic scripts from dist unless copied, so vite.config.js copies them; loss unit assumed bps, T-B02 must confirm
 
 # P1, Nov 24
 
