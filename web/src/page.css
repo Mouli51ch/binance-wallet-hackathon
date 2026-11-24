@@ -111,3 +111,6 @@ main{padding-bottom:40px}
 
 /* T-B02: the live crowd band line under the hero copy */
 .hero__band{margin:0;font:500 13px/1.5 var(--mono);color:var(--o);letter-spacing:.02em}
+
+/* T-B04: the way into the app from the landing page */
+.topbar__links a.topbar__app{color:var(--o)}

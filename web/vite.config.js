@@ -12,6 +12,8 @@ let outDir = resolve(here, 'dist')
 export default defineConfig({
   root: here,
   base: './',
+  // two pages: the landing page and the app (T-B04)
+  build: { rollupOptions: { input: { main: resolve(here, 'index.html'), app: resolve(here, 'app.html') } } },
   plugins: [
     {
       name: 'copy-classic-scripts',

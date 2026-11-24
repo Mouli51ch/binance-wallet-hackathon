@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kodo app: today's crowd band, history and forecasters</title>
+<meta name="description" content="Read-only Kodo app: today's BNB crowd band from verified humans, every settled day, the leaderboard and each forecaster's record.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/sublevel.css">
+<link rel="stylesheet" href="src/page.css">
+</head>
+<body class="app">
+<a class="skip" href="#view">Skip to content</a>
+
+<nav class="topbar" aria-label="App">
+  <div class="topbar__in">
+    <i class="cnr tl" aria-hidden="true"></i><i class="cnr tr" aria-hidden="true"></i><i class="cnr bl" aria-hidden="true"></i><i class="cnr br" aria-hidden="true"></i>
+    <a class="wordmark" href="index.html">kodo<i>.</i></a>
+    <div class="topbar__links app-links">
+      <a href="#/" data-route="dashboard">Today</a>
+      <a href="#/history" data-route="history">History</a>
+      <a href="#/leaderboard" data-route="leaderboard">Leaderboard</a>
+    </div>
+    <a class="topbar__cta" href="#/forecast" data-route="forecast"><span class="led" aria-hidden="true"></span>Make a forecast</a>
+  </div>
+</nav>
+<nav class="app-tabs" aria-label="App, small screens">
+  <a href="#/" data-route="dashboard">Today</a>
+  <a href="#/history" data-route="history">History</a>
+  <a href="#/leaderboard" data-route="leaderboard">Board</a>
+  <a href="#/forecast" data-route="forecast">Forecast</a>
+</nav>
+
+<main id="view" class="app-main" tabindex="-1">
+  <p class="note">Loading the forecasts. If this stays, JavaScript is off or blocked: turn it on to see them.</p>
+</main>
+
+<footer class="app-foot">
+  <p>Forecasting signal only. Not financial advice. No returns are promised.</p>
+  <p id="contract-line">Contract: not deployed yet.</p>
+  <p><a href="index.html">About Kodo</a></p>
+  <p><a href="https://github.com/Mouli51ch/binance-wallet-hackathon">Agent skill on GitHub</a></p>
+</footer>
+
+<script type="module" src="src/app/app.js"></script>
+</body>
+</html>
