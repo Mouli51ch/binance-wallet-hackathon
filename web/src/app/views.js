@@ -46,22 +46,38 @@ function addrMatcher(q) {
   }
 }
 
-/** The three stages every forecast goes through, with today's live numbers. */
+/** How Kodo works in three steps, each with today's live number. */
 function lifecycle(app) {
   const { data } = app, h = data.history
   const t = h.days[data.today] ?? {}, tm = h.days[data.today + 1] ?? {}
   const step = (n, title, body, live) => el('li', { class: 'step' },
     el('span', { class: 'step-n', 'aria-hidden': 'true' }, n),
     el('h3', { class: 'step-title' }, title), el('p', { class: 'step-body' }, body), el('p', { class: 'step-live' }, ...live))
-  return frame('card card--steps',
-    el('h2', { class: 'card-title' }, 'How a forecast works'),
-    el('ol', { class: 'steps' },
-      step('1', 'Locked', 'You send a low, a middle and a high for tomorrow. Only a fingerprint of the numbers goes on chain, so nobody can see or copy them yet.',
-        [`${tm.committed ?? 0} locked for ${dayLabel(data.today + 1)}`]),
-      step('2', 'Revealed', 'On that day your agent reveals the numbers. Now everyone can see them, and they join the crowd band.',
-        [`${t.revealed ?? 0} of ${t.committed ?? 0} revealed for today`]),
-      step('3', 'Scored', "At 00:00 UTC the day closes on Chainlink's BNB price. Each forecast is scored against the baseline.",
-        [el('b', { 'data-countdown': '' }, '--:--:--'), ' until today is scored'])))
+  return el('ol', { class: 'steps' },
+    step('1', 'Forecast', 'Send a range with your AI agent.', [`${tm.committed ?? 0} for ${dayLabel(data.today + 1)}`]),
+    step('2', 'Reveal', 'Hidden until the next day. No copying.', [`${t.revealed ?? 0} of ${t.committed ?? 0} revealed today`]),
+    step('3', 'Score', 'The real price decides at 00:00 UTC.', [el('b', { 'data-countdown': '' }, '--:--:--'), ' to go']))
+}
+
+const SKILL_URL = 'https://github.com/Mouli51ch/binance-wallet-hackathon/tree/main/skills/human-pulse'
+/** What a visitor does: two prompts to paste into an AI agent that can run commands. */
+const INSTALL_PROMPT = 'Install the Kodo skill: copy the folder skills/human-pulse from https://github.com/Mouli51ch/binance-wallet-hackathon into ~/.claude/skills/human-pulse, then run npm install inside it.'
+function copyRow(label, text) {
+  const code = el('code', { class: 'prompt-text' }, text)
+  const btn = el('button', { type: 'button', class: 'copy', onclick: async () => {
+    try { await navigator.clipboard.writeText(code.textContent); btn.textContent = 'Copied' } catch { btn.textContent = 'Select and copy' }
+    setTimeout(() => { btn.textContent = 'Copy' }, 2400)
+  } }, 'Copy')
+  return { code, node: el('div', { class: 'join-row' }, el('span', { class: 'join-n' }, label), el('div', { class: 'prompt' }, code, btn)) }
+}
+function joinBlock(text) {
+  const install = copyRow('1. Add the skill', INSTALL_PROMPT)
+  const go = copyRow('2. Forecast', text)
+  return { code: go.code, node: frame('card join-card',
+    el('h2', { class: 'card-title' }, 'Paste these into your AI agent'),
+    install.node, go.node,
+    el('p', { class: 'join-foot' }, 'Use an agent that runs commands on your computer, like Claude Code. Phone chat apps cannot send it. ',
+      el('a', { href: SKILL_URL, rel: 'noopener' }, 'See the skill')), ) }
 }
 
 const STAGE = { locked: 'Locked', revealed: 'Revealed', scored: 'Scored', missed: 'Not revealed' }
@@ -72,12 +88,12 @@ function forecastTable(rows, today, { voter = true } = {}) {
     return r.stage === 'locked' ? `Hidden until revealed on ${dayLabel(r.day)}` : 'Never revealed'
   }
   const result = (r) => {
-    if (r.score) return `${r.beat ? 'Beat the baseline' : 'Baseline won'}: ${r.score.loss.toFixed(1)} vs ${r.score.baselineLoss.toFixed(1)}`
+    if (r.score) return `${r.beat ? 'Beat a typical day' : 'Typical day did better'}: ${r.score.loss.toFixed(1)} vs ${r.score.baselineLoss.toFixed(1)}`
     if (r.stage === 'missed') return 'Scored as a miss when the day settles'
     return `Scored after ${dayLabel(r.day)} ends, 00:00 UTC`
   }
   return el('div', { class: 'scroll-x' }, el('table', { class: 'board board--forecasts' },
-    el('caption', {}, "Low / middle / high of BNB's move that day. Scores are pinball loss in bps; lower is better."),
+    el('caption', {}, "Low / middle / high of BNB's move that day. Scores are a loss: lower is better."),
     el('thead', {}, el('tr', {}, ...['Day', voter && 'Forecaster', 'Stage', 'Low / middle / high', 'BNB', 'Result'].filter(Boolean).map((t) => el('th', { scope: 'col' }, t)))),
     el('tbody', {}, ...rows.map((r) => el('tr', {},
       el('td', {}, dayLabel(r.day)),
@@ -88,54 +104,55 @@ function forecastTable(rows, today, { voter = true } = {}) {
       el('td', { class: r.score ? (r.beat ? 'up' : 'down') : 'muted' }, result(r)))))))
 }
 
-/* ---------------------------------------------------------------- dashboard */
+/* ---------------------------------------------------------------- today */
 export function dashboard(app) {
   const { data } = app
   const h = data.history
   const t = h.days[data.today] ?? {}
   const y = h.days[data.today - 1]
-  const domain = domainFor([t.crowd?.p10, t.crowd?.p90, t.baseline?.p10, t.baseline?.p90, y?.result?.changeBps])
-  const latest = forecastRows(h, data.today).slice(0, 5)
+  const next = h.days[data.today + 1] ?? {}
+  const people = (n) => `${n} ${n === 1 ? 'person' : 'people'}`
+  const crowd = validBand(t.crowd) && t.revealed > 0
+
+  // the one answer a visitor came for
+  let answer, detail = null
+  if (crowd) answer = `${people(t.revealed)} expect BNB between ${pct(t.crowd.p10, 1)} and ${pct(t.crowd.p90, 1)} today.`
+  else if (t.committed) { answer = `${people(t.committed)} forecast today.`; detail = 'Numbers appear as they reveal.' }
+  else if (next.committed) { answer = `${people(next.committed)} forecast ${dayLabel(data.today + 1)}.`; detail = 'Numbers stay hidden until then.' }
+  else answer = 'No forecasts yet. Be the first.'
+
+  const priceNow = el('span', { class: 'td-price' })
+  bnbPrice().then((p) => { priceNow.textContent = `BNB $${p.usd.toLocaleString('en-US', { maximumFractionDigits: 2 })}` }).catch(() => {})
+
   const top = rankRows(app).filter((r) => r.ranked).slice(0, 3)
+  const side = [
+    y?.result && frame('card',
+      el('h2', { class: 'card-title' }, `Yesterday, ${dayLabel(data.today - 1)}`),
+      el('p', { class: 'big-num' }, `BNB ${pct(y.result.changeBps)}`),
+      y.crowd ? el('p', { class: 'verdict' }, y.result.crowdLoss < y.result.baselineLoss ? 'People beat a typical day.' : 'A typical day did better.') : null,
+      link('#/history', 'Every day', 'arrow')),
+    top.length > 0 && frame('card',
+      el('h2', { class: 'card-title' }, 'Best forecasters'),
+      el('ol', { class: 'mini-board' }, ...top.map((r) => el('li', {}, link(`#/f/${r.full}`, r.address, 'mono')))),
+      link('#/leaderboard', 'Leaderboard', 'arrow')),
+  ].filter(Boolean)
 
   return el('section', { class: 'view' },
-    head(`Today, ${dayLabel(data.today)}`, 'The crowd band is the average of every revealed low, middle and high.', app.pill),
-    frame('card card--hero',
-      validBand(t.crowd)
-        ? el('p', { class: 'lead' }, `${t.revealed} verified ${t.revealed === 1 ? 'person expects' : 'people expect'} BNB between ${pct(t.crowd.p10)} and ${pct(t.crowd.p90)} today, ${pct(t.crowd.p50)} in the middle.`)
-        : el('p', { class: 'lead' }, t.committed ? `${t.committed} verified ${t.committed === 1 ? 'person' : 'people'} locked a forecast for today. The band opens as they reveal.`
-          : h.days[data.today + 1]?.committed ? `${h.days[data.today + 1].committed} verified ${h.days[data.today + 1].committed === 1 ? 'person has' : 'people have'} locked a forecast for ${dayLabel(data.today + 1)}. The numbers open when they are revealed that day.`
-          : 'No forecasts for today yet.'),
-      bandStrip({ baseline: t.baseline, crowd: validBand(t.crowd) ? t.crowd : null, domain }),
-      el('p', { class: 'note' }, 'The baseline is "no change", widened by recent volatility. The crowd only shows skill if it beats it over time.')),
+    el('header', { class: 'td-intro' },
+      el('h1', { class: 'f-h2' }, 'Real people forecast BNB. Kodo keeps score.'),
+      el('p', {}, 'One Binance Agent ID, one vote. No bots.'),
+      app.pill ? el('span', { class: 'pill' }, app.pill) : null),
+    frame('card td-answer',
+      el('p', { class: 'td-when' }, `Today, ${dayLabel(data.today)}`, priceNow),
+      el('p', { class: 'td-big' }, answer),
+      detail ? el('p', { class: 'td-detail' }, detail) : null,
+      crowd ? bandStrip({ baseline: t.baseline, crowd: t.crowd, domain: domainFor([t.crowd.p10, t.crowd.p90, t.baseline?.p10, t.baseline?.p90]), labels: { crowd: 'People', baseline: 'Typical day' } }) : null,
+      el('div', { class: 'td-actions' },
+        link('#/forecast', 'Make your forecast', 'btn'),
+        link('#/forecasts', 'See all forecasts', 'arrow'))),
     lifecycle(app),
-    frame('card',
-      el('h2', { class: 'card-title' }, 'Latest forecasts'),
-      latest.length ? forecastTable(latest, data.today) : el('p', { class: 'note' }, 'No forecasts yet. The first one appears here as soon as it is locked.'),
-      link('#/forecasts', 'See every forecast, or find yours', 'arrow')),
-    el('div', { class: 'cols2' },
-      frame('card',
-        el('h2', { class: 'card-title' }, `Yesterday, ${dayLabel(data.today - 1)}`),
-        y?.result
-          ? el('div', {},
-            el('p', { class: 'big-num' }, `BNB ${pct(y.result.changeBps)}`),
-            el('p', { class: 'verdict' }, y.result.crowdLoss < y.result.baselineLoss ? 'The crowd beat the baseline.' : 'The baseline beat the crowd.'),
-            el('p', { class: 'note' }, `Crowd loss ${y.result.crowdLoss.toFixed(1)} bps against the baseline's ${y.result.baselineLoss.toFixed(1)}. Lower is better.`))
-          : data.today - 1 < data.startDay
-            ? el('p', { class: 'note' }, `Before the contract's first day, ${dayLabel(data.startDay)}. Nothing to settle.`)
-            : el('p', { class: 'note' }, 'Not settled yet. Anyone can settle it with the Chainlink round from 00:00 UTC.'),
-        link('#/history', 'See every day', 'arrow')),
-      frame('card',
-        el('h2', { class: 'card-title' }, 'Top forecasters'),
-        top.length
-          ? el('ol', { class: 'mini-board' }, ...top.map((r) => el('li', {},
-            link(`#/f/${r.full}`, r.address, 'mono'), el('span', { class: r.skillBps >= 0 ? 'up' : 'down' }, `${signed(r.skillBps)} bps a day`))))
-          : el('p', { class: 'note' }, `Nobody has ${MIN_SCORED_DAYS} scored days yet.`),
-        link('#/leaderboard', 'Full leaderboard', 'arrow'))),
-    frame('card card--cta',
-      el('div', {}, el('h2', { class: 'card-title' }, 'Make your own forecast'),
-        el('p', { class: 'note' }, 'Set a low, middle and high, see how that band would have scored on past days, and get the prompt for your agent.')),
-      link('#/forecast', 'Make a forecast', 'btn')),
+    joinBlock('Make my daily BNB forecast with the Kodo skill.').node,
+    side.length === 2 ? el('div', { class: 'cols2' }, ...side) : side[0] ?? null,
   )
 }
 
@@ -143,11 +160,11 @@ export function dashboard(app) {
 export function startCountdown(root, chainNow) {
   const t0 = Date.now()
   const tickFn = () => {
-    const n = root.querySelector('[data-countdown]'); if (!n) return false
+    const ns = root.querySelectorAll('[data-countdown]'); if (!ns.length) return false
     const now = chainNow + Math.floor((Date.now() - t0) / 1000)
     const left = 86400 - (now % 86400)
     const p = (v) => String(v).padStart(2, '0')
-    n.textContent = `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`
+    for (const n of ns) n.textContent = `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`
     return true
   }
   if (!tickFn()) return () => {}
@@ -252,7 +269,7 @@ export function forecaster(app, raw) {
     if (!mine.length) return el('section', { class: 'view' }, head(shortAddr(addr), 'No forecasts from this address in the last 14 days. They appear here as soon as one is locked.', app.pill), link('#/forecasts', 'See every forecast', 'btn'))
     return el('section', { class: 'view' },
       head(shortAddr(addr), `${mine.length} ${mine.length === 1 ? 'forecast' : 'forecasts'}, none scored yet. Locked numbers stay hidden until the forecaster reveals them.`, app.pill),
-      list, lifecycle(app))
+      list, frame('card', lifecycle(app)))
   }
   const rank = rankRows(app).filter((r) => r.ranked).sort(SORTS.skill).findIndex((r) => r.full === addr)
   const days = settledDays(app.data.history).filter((d) => v.forecasts[d.day] || v.scores[d.day])
@@ -288,74 +305,86 @@ export function forecastsView(app) {
   }
   draw()
   return el('section', { class: 'view' },
-    head('Forecasts', 'Every forecast from the last 14 days and where it is now. Paste your wallet address to find yours.', app.pill),
+    head('Forecasts', 'Last 14 days. Paste your address to find yours.', app.pill),
     frame('card',
       el('label', { class: 'search' }, el('span', {}, 'Find your forecasts'),
         el('input', { type: 'search', placeholder: 'Your wallet address, 0x...', autocomplete: 'off', spellcheck: 'false', oninput: (e) => { q = e.target.value.trim(); draw() } })),
       body),
-    lifecycle(app),
+    frame('card', lifecycle(app)),
   )
 }
 
 /* ---------------------------------------------------------------- make a forecast */
 export function forecast(app) {
-  const t = app.data.history.days[app.data.today] ?? {}
-  const past = settledDays(app.data.history).map((d) => ({ day: d.day, changeBps: d.result.changeBps, baselineLoss: d.result.baselineLoss }))
-  const start = validBand(t.crowd) ? t.crowd : t.baseline ?? { p10: -300, p50: 0, p90: 300 }
-  const band = { ...start }
+  const { data } = app
+  const day = dayLabel(data.today + 1) // a forecast made today is for tomorrow (UTC)
+  const t = data.history.days[data.today] ?? {}
+  const past = settledDays(data.history).map((d) => ({ day: d.day, changeBps: d.result.changeBps, baselineLoss: d.result.baselineLoss }))
+  const typical = Math.max(50, t.baseline?.p90 ?? 320) // the baseline's half-width: a typical day's range
+  const band = { p10: -typical, p50: 0, p90: typical }
   const LIM = 1500
-  const domain = Math.max(800, domainFor([t.baseline?.p10, t.baseline?.p90, ...past.map((d) => d.changeBps)]))
+  const domain = Math.max(800, domainFor([typical * 1.6, ...past.map((d) => d.changeBps)]))
 
-  const chartBox = el('div', { class: 'chart-box' })
-  const result = el('div', { class: 'stats' })
-  const perDay = el('ol', { class: 'past-days' })
-  const prompt = el('code', { class: 'prompt-text' })
-  const values = {}, usd = {}
-  let price = null // { usd, ageS, stale } from Chainlink, filled in after the first read
-  const money = (x) => `$${x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  const priceLine = el('p', { class: 'price-line' }, 'Reading the live BNB price from Chainlink...')
+  let price = null // { usd, ageS, stale } from Chainlink
+  const money = (x) => `$${x.toLocaleString('en-US', { maximumFractionDigits: x >= 100 ? 0 : 2 })}`
+  const at = (bps) => (price ? money(usdAt(price.usd, bps)) : null)
 
+  const priceLine = el('p', { class: 'fc-price' }, 'Reading the live BNB price...')
+  const sentence = el('p', { class: 'fc-sentence', 'aria-live': 'polite' })
+  const exact = el('p', { class: 'fc-exact' })
+  const chartBox = el('div', { class: 'fc-chart' })
+  const backtestLine = el('p', { class: 'note' })
+  const join = joinBlock('')
+  const outs = {}
+
+  // the three numbers, best guess first, in plain words
   const slider = (key, label) => {
-    const out = el('output', { for: `s-${key}` })
-    values[key] = out
-    const input = el('input', { id: `s-${key}`, type: 'range', min: -LIM, max: LIM, step: 5, value: band[key], 'aria-describedby': `s-${key}-v`,
+    const out = el('output', { for: `s-${key}`, class: 'fc-out' })
+    outs[key] = out
+    const input = el('input', { id: `s-${key}`, type: 'range', min: -LIM, max: LIM, step: 5, value: band[key],
       oninput: (e) => {
         const v = Number(e.target.value)
         band[key] = v
-        // keep low <= middle <= high by pushing the neighbours along
+        // keep lowest <= most likely <= highest by pushing the neighbours along
         if (key === 'p10') { band.p50 = Math.max(band.p50, v); band.p90 = Math.max(band.p90, band.p50) }
         if (key === 'p50') { band.p10 = Math.min(band.p10, v); band.p90 = Math.max(band.p90, v) }
         if (key === 'p90') { band.p50 = Math.min(band.p50, v); band.p10 = Math.min(band.p10, band.p50) }
+        presets.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'))
         sync()
       } })
-    out.id = `s-${key}-v`
-    usd[key] = el('span', { class: 'slider-usd' })
-    return el('div', { class: 'slider' }, el('label', { for: `s-${key}` }, label, usd[key]), input, out)
+    return el('div', { class: 'fc-row' }, el('label', { for: `s-${key}` }, label), input, out)
   }
-  const sliders = el('div', { class: 'sliders' }, slider('p10', 'Low, p10: 90% sure BNB ends above'), slider('p50', 'Middle, p50: best guess'), slider('p90', 'High, p90: 90% sure BNB ends below'))
+  const sliders = el('div', { class: 'fc-sliders' },
+    slider('p50', 'Most likely move'),
+    slider('p10', 'Lowest it probably goes'),
+    slider('p90', 'Highest it probably goes'))
+
+  // quick starts: a symmetric range around no change
+  const preset = (label, half) => el('button', { type: 'button', class: 'fc-preset', 'aria-pressed': String(half === typical),
+    onclick: (e) => {
+      Object.assign(band, { p10: -half, p50: 0, p90: half })
+      presets.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget)))
+      sync()
+    } }, el('b', {}, label), el('span', {}, `${pct(-half)} to ${pct(half)}`))
+  const presets = el('div', { class: 'fc-presets', role: 'group', 'aria-label': 'Quick start' },
+    preset('Calm day', Math.round(typical / 2 / 5) * 5),
+    preset('Typical day', typical),
+    preset('Wild day', Math.round((typical * 2) / 5) * 5))
 
   const sync = () => {
     for (const k of ['p10', 'p50', 'p90']) {
       sliders.querySelector(`#s-${k}`).value = band[k]
-      values[k].textContent = pct(band[k])
-      usd[k].textContent = price ? `about ${money(usdAt(price.usd, band[k]))}` : ''
+      outs[k].replaceChildren(el('b', {}, pct(band[k])), at(band[k]) ? el('span', {}, `about ${at(band[k])}`) : null)
     }
-    chartBox.replaceChildren(bandStrip({ baseline: t.baseline, crowd: validBand(t.crowd) ? t.crowd : null, mine: band, domain }))
+    sentence.textContent = price
+      ? `BNB ends ${day} somewhere between ${at(band.p10)} and ${at(band.p90)}, most likely around ${at(band.p50)}.`
+      : `BNB moves between ${pct(band.p10)} and ${pct(band.p90)} on ${day}, most likely ${pct(band.p50)}.`
+    exact.textContent = `You send ${pct(band.p10)} / ${pct(band.p50)} / ${pct(band.p90)}`
+    chartBox.replaceChildren(bandStrip({ baseline: { p10: -typical, p50: 0, p90: typical }, mine: band, domain, labels: { baseline: 'Typical day', mine: 'You' } }))
     const r = backtest(band, past)
-    result.replaceChildren(
-      stat(r.days ? `${r.beat}/${r.days}` : 'n/a', 'Past days this band beat the baseline'),
-      stat(r.days ? `${signed(r.avgSavedBps)}` : 'n/a', 'Average bps saved a day', r.avgSavedBps >= 0 ? 'up' : 'down'),
-      stat(`${pct(band.p90 - band.p10)}`, 'Width, low to high'))
-    perDay.replaceChildren(...past.slice().reverse().map((d) => {
-      const inside = band.p10 <= d.changeBps && d.changeBps <= band.p90
-      return el('li', { class: inside ? 'in' : 'out' }, el('span', {}, dayLabel(d.day)), el('span', {}, `BNB ${pct(d.changeBps)}`), el('span', {}, inside ? 'inside' : 'outside'))
-    }))
-    prompt.textContent = `Make my daily BNB forecast with the Kodo skill: low ${pct(band.p10)}, middle ${pct(band.p50)}, high ${pct(band.p90)}.`
+    backtestLine.textContent = r.days ? `This range beat a typical day on ${r.beat} of the last ${r.days} days. No guarantee for tomorrow.` : ''
+    join.code.textContent = `Make my daily BNB forecast with the Kodo skill: low ${pct(band.p10)}, middle ${pct(band.p50)}, high ${pct(band.p90)}.`
   }
-  const copyBtn = el('button', { type: 'button', class: 'copy', onclick: async () => {
-    try { await navigator.clipboard.writeText(prompt.textContent); copyBtn.textContent = 'Prompt copied' } catch { copyBtn.textContent = 'Select the text and copy it' }
-    setTimeout(() => { copyBtn.textContent = 'Copy the prompt' }, 2400)
-  } }, 'Copy the prompt')
   sync()
 
   // the live price, refreshed every 30 s while this view is on screen
@@ -364,12 +393,11 @@ export function forecast(app) {
     try {
       price = await bnbPrice()
       const age = price.ageS < 90 ? `${price.ageS} s` : `${Math.round(price.ageS / 60)} min`
-      priceLine.replaceChildren(el('b', {}, `BNB ${money(price.usd)}`),
-        ` now, from Chainlink's BNB/USD feed, the price Kodo scores against. Updated ${age} ago.` +
-        (price.stale ? ' This is over 2 hours old, so the feed may be stale.' : ''))
+      priceLine.replaceChildren('BNB now ', el('b', {}, money(price.usd)),
+        el('span', {}, price.stale ? 'Chainlink price is over 2 h old' : `Chainlink, ${age} ago`))
       sync()
     } catch (e) {
-      priceLine.textContent = `The live BNB price could not be read (${e.shortMessage ?? e.message}). The forecast still works in %; reload to try again.`
+      priceLine.textContent = 'Live price unavailable. Reload to try again.'
     }
     return true
   }
@@ -378,22 +406,16 @@ export function forecast(app) {
   })
 
   return el('section', { class: 'view' },
-    head('Make a forecast', `For tomorrow's BNB move: a low, a middle and a high. Your agent sends it; you confirm it in Binance.`, app.pill),
-    frame('card card--hero', priceLine, sliders,
-      el('p', { class: 'note' }, 'You forecast the % move over tomorrow (UTC), from the price at 00:00 to the next 00:00. The dollar values use the price now, as a guide.'),
-      chartBox, el('p', { class: 'note' }, 'Today\'s crowd and baseline are shown for reference. A wide band rarely misses but loses a little every day; a narrow one loses more when it misses.'),
-      link('index.html#forecast', 'How scoring works', 'arrow')),
-    el('h2', { class: 'card-title' }, 'How this band would have scored'),
-    result,
-    past.length ? frame('card', perDay, el('p', { class: 'note' }, 'Past days say nothing certain about tomorrow. This is how the scoring works, not a promise of how it will go.')) : null,
-    frame('card card--prompt',
-      el('h2', { class: 'card-title' }, 'Send it with your agent'),
-      el('div', { class: 'prompt' }, prompt, copyBtn),
-      el('ol', { class: 'steps-mini' },
-        el('li', {}, 'Paste it to your agent. It needs an Agent ID wallet with Developer Mode on, and the Kodo skill.'),
-        el('li', {}, 'It shows you a preview. Read it and confirm it yourself. This site never connects a wallet or sends anything.'),
-        el('li', {}, 'Your forecast is now locked: on chain, but hidden until tomorrow.'),
-        el('li', {}, 'Tomorrow, ask your agent again. It reveals this forecast and locks the next one.'),
-        el('li', {}, 'After 00:00 UTC that day it is scored. Find it under Forecasts with your wallet address.'))),
+    head(`Your forecast for ${day}`, "How much will BNB move? Pick a range you're 90% sure of.", app.pill),
+    frame('card fc-main', priceLine, sentence, exact, presets, sliders, chartBox),
+    join.node,
+    el('details', { class: 'fc-how' },
+      el('summary', {}, 'How scoring works'),
+      el('ul', { class: 'fc-list' },
+        el('li', {}, 'Tight and right scores best.'),
+        el('li', {}, 'Missing costs more the further off.'),
+        el('li', {}, 'Too wide loses a little every day.'),
+        el('li', {}, `Hidden until you reveal it on ${day}.`)),
+      backtestLine),
   )
 }
