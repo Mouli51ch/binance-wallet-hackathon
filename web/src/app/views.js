@@ -3,6 +3,7 @@
 import { getAddress } from 'viem'
 import { backtest, dayLabel, forecastRows, leaderboard, MIN_SCORED_DAYS, pct, shortAddr, validBand } from '../model.js'
 import { bandStrip, dayColumns, domainFor } from './charts.js'
+import { bnbPrice, usdAt } from '../price.js'
 
 export const RISK = 'Forecasting signal only. Not financial advice. No returns are promised.'
 
@@ -309,7 +310,10 @@ export function forecast(app) {
   const result = el('div', { class: 'stats' })
   const perDay = el('ol', { class: 'past-days' })
   const prompt = el('code', { class: 'prompt-text' })
-  const values = {}
+  const values = {}, usd = {}
+  let price = null // { usd, ageS, stale } from Chainlink, filled in after the first read
+  const money = (x) => `$${x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const priceLine = el('p', { class: 'price-line' }, 'Reading the live BNB price from Chainlink...')
 
   const slider = (key, label) => {
     const out = el('output', { for: `s-${key}` })
@@ -325,7 +329,8 @@ export function forecast(app) {
         sync()
       } })
     out.id = `s-${key}-v`
-    return el('div', { class: 'slider' }, el('label', { for: `s-${key}` }, label), input, out)
+    usd[key] = el('span', { class: 'slider-usd' })
+    return el('div', { class: 'slider' }, el('label', { for: `s-${key}` }, label, usd[key]), input, out)
   }
   const sliders = el('div', { class: 'sliders' }, slider('p10', 'Low, p10: 90% sure BNB ends above'), slider('p50', 'Middle, p50: best guess'), slider('p90', 'High, p90: 90% sure BNB ends below'))
 
@@ -333,6 +338,7 @@ export function forecast(app) {
     for (const k of ['p10', 'p50', 'p90']) {
       sliders.querySelector(`#s-${k}`).value = band[k]
       values[k].textContent = pct(band[k])
+      usd[k].textContent = price ? `about ${money(usdAt(price.usd, band[k]))}` : ''
     }
     chartBox.replaceChildren(bandStrip({ baseline: t.baseline, crowd: validBand(t.crowd) ? t.crowd : null, mine: band, domain }))
     const r = backtest(band, past)
@@ -352,9 +358,30 @@ export function forecast(app) {
   } }, 'Copy the prompt')
   sync()
 
+  // the live price, refreshed every 30 s while this view is on screen
+  const refresh = async () => {
+    if (!priceLine.isConnected && price) return false
+    try {
+      price = await bnbPrice()
+      const age = price.ageS < 90 ? `${price.ageS} s` : `${Math.round(price.ageS / 60)} min`
+      priceLine.replaceChildren(el('b', {}, `BNB ${money(price.usd)}`),
+        ` now, from Chainlink's BNB/USD feed, the price Kodo scores against. Updated ${age} ago.` +
+        (price.stale ? ' This is over 2 hours old, so the feed may be stale.' : ''))
+      sync()
+    } catch (e) {
+      priceLine.textContent = `The live BNB price could not be read (${e.shortMessage ?? e.message}). The forecast still works in %; reload to try again.`
+    }
+    return true
+  }
+  refresh().then(() => {
+    const id = setInterval(async () => { if (!priceLine.isConnected || !(await refresh())) clearInterval(id) }, 30000)
+  })
+
   return el('section', { class: 'view' },
     head('Make a forecast', `For tomorrow's BNB move: a low, a middle and a high. Your agent sends it; you confirm it in Binance.`, app.pill),
-    frame('card card--hero', sliders, chartBox, el('p', { class: 'note' }, 'Today\'s crowd and baseline are shown for reference. A wide band rarely misses but loses a little every day; a narrow one loses more when it misses.'),
+    frame('card card--hero', priceLine, sliders,
+      el('p', { class: 'note' }, 'You forecast the % move over tomorrow (UTC), from the price at 00:00 to the next 00:00. The dollar values use the price now, as a guide.'),
+      chartBox, el('p', { class: 'note' }, 'Today\'s crowd and baseline are shown for reference. A wide band rarely misses but loses a little every day; a narrow one loses more when it misses.'),
       link('index.html#forecast', 'How scoring works', 'arrow')),
     el('h2', { class: 'card-title' }, 'How this band would have scored'),
     result,

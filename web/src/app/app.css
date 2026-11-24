@@ -77,7 +77,10 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 /* make a forecast */
 .sliders{display:flex;flex-direction:column;gap:14px}
 .slider{display:grid;grid-template-columns:minmax(0,1fr) 92px;grid-template-areas:"l l" "i o";gap:6px 14px;align-items:center}
-.slider label{grid-area:l;font:500 13px/1.3 var(--mono);color:var(--w2)}
+.slider label{grid-area:l;font:500 13px/1.3 var(--mono);color:var(--w2);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.slider-usd{color:var(--g1);font-variant-numeric:tabular-nums}
+.price-line{font:500 14px/1.5 var(--mono);color:var(--g1);padding-bottom:12px;border-bottom:1px solid var(--line)}
+.price-line b{color:var(--w1);font:600 clamp(20px,2.2vw,26px)/1.2 var(--sans);margin-right:6px;font-variant-numeric:tabular-nums}
 .slider input{grid-area:i;width:100%;accent-color:var(--o);height:28px}
 .slider output{grid-area:o;text-align:right;font:500 20px/1 var(--sans);color:var(--w1);font-variant-numeric:tabular-nums}
 .past-days{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
