@@ -173,3 +173,15 @@ export function myDays(history, today, address) {
   const on = (d) => mine.find((r) => r.day === d) ?? null
   return { yesterday: on(today - 1), today: on(today), tomorrow: on(today + 1) }
 }
+
+/**
+ * The live race: where BNB's move so far today sits against people's range and a typical day.
+ *   zone      'in' inside the crowd's range, 'high' above it, 'low' below it, null before anyone opened
+ *   typical   'in' inside a typical day's range (+-typicalHalf), else 'out'
+ *   onTarget  how many opened forecasts contain the move right now, of how many
+ */
+export function raceVerdict(moveBps, crowd, typicalHalf, people) {
+  const zone = !crowd ? null : moveBps > crowd.p90 ? 'high' : moveBps < crowd.p10 ? 'low' : 'in'
+  const onTarget = people.filter((p) => p.p10 <= moveBps && moveBps <= p.p90).length
+  return { zone, typical: Math.abs(moveBps) <= typicalHalf ? 'in' : 'out', onTarget, of: people.length }
+}

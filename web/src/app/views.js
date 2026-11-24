@@ -1,9 +1,9 @@
 // The five app views. Each returns one DOM node built with textContent, never innerHTML:
 // chain data is data, not markup. Read-only: nothing here connects a wallet or signs.
 import { getAddress, isAddress } from 'viem'
-import { backtest, dayLabel, forecastRows, guessRecord, leanOf, leaderboard, MIN_SCORED_DAYS, myDays, pct, sealGlyph, shortAddr, validBand } from '../model.js'
+import { backtest, dayLabel, forecastRows, guessRecord, leanOf, leaderboard, MIN_SCORED_DAYS, myDays, pct, raceVerdict, sealGlyph, shortAddr, validBand } from '../model.js'
 import { bandStrip, dayColumns, domainFor, svg } from './charts.js'
-import { bnbPrice, usdAt } from '../price.js'
+import { bnbPrice, raceData, usdAt } from '../price.js'
 
 export const RISK = 'Forecasting signal only. Not financial advice. No returns are promised.'
 
@@ -233,6 +233,107 @@ function guessCard(app) {
   return card
 }
 
+/* ---------------------------------------------------------------- the live race */
+// The day as a drop: 00:00 UTC at the top, midnight at the bottom, BNB's move since 00:00 across.
+// BNB is the ball; its trail is the real Chainlink path today. People's range is the goal zone at
+// the bottom, every opened forecast a post that lights up while BNB is inside it. Updates every
+// 30 s from the contract's own feed. Motion is off under prefers-reduced-motion (CSS).
+const AW = 1000, AH = 470, TOP = 24, BOTTOM = 402
+function raceCard(app) {
+  const { data, cfg } = app
+  if (!data.contract || cfg.network === 'sample') return null
+  const t = data.history.days[data.today] ?? {}
+  const crowd = validBand(t.crowd) && t.revealed > 0 ? t.crowd : null
+  const typical = Math.max(50, t.baseline?.p90 ?? 320)
+  const vs = data.history.voters
+  const people = Object.entries(vs).map(([a, v]) => ({ a, f: v.forecasts?.[data.today] })).filter((x) => x.f)
+  let domain = Math.ceil((Math.max(300, typical, Math.abs(crowd?.p10 ?? 0), Math.abs(crowd?.p90 ?? 0)) * 1.3) / 100) * 100
+  const x = (bps) => AW / 2 + (Math.max(-domain, Math.min(domain, bps)) / domain) * (AW / 2 - 30)
+  const yOf = (ts) => TOP + Math.max(0, Math.min(1, (ts - data.today * 86400) / 86400)) * (BOTTOM - TOP)
+
+  const arena = svg('svg', { viewBox: `0 0 ${AW} ${AH}`, class: 'race-arena', role: 'img', 'aria-label': 'Live race: BNB today against what people expect' })
+  const lanes = svg('g', {}), trail = svg('polyline', { class: 'race-trail', points: '' })
+  const ring = svg('circle', { r: 12, class: 'race-ring' }), ballDot = svg('circle', { r: 11, class: 'race-ball' })
+  const ball = svg('g', { class: 'race-ballg', style: `transform:translate(${AW / 2}px,${TOP}px)` }, ring, ballDot)
+  const nowLine = svg('line', { x1: 0, x2: AW, y1: TOP, y2: TOP, class: 'race-now' })
+  // where it lands if the price holds: a drop line from the ball to the floor, and a marker on it
+  const drop = svg('line', { x1: AW / 2, x2: AW / 2, y1: TOP, y2: BOTTOM, class: 'race-drop' })
+  const mark = svg('path', { d: `M ${AW / 2 - 9} ${BOTTOM + 12} L ${AW / 2} ${BOTTOM} L ${AW / 2 + 9} ${BOTTOM + 12} Z`, class: 'race-mark' })
+  const posts = svg('g', {})
+  arena.append(lanes, nowLine, drop, trail, posts, mark, ball)
+
+  const drawLanes = () => {
+    lanes.replaceChildren(
+      ...[-4, -2, 2, 4].map((p) => p * 100).filter((v) => Math.abs(v) < domain).map((v) => svg('line', { x1: x(v), x2: x(v), y1: TOP, y2: BOTTOM, class: 'race-grid' })),
+      svg('line', { x1: x(0), x2: x(0), y1: TOP, y2: BOTTOM, class: 'race-zero' }),
+      svg('rect', { x: x(-typical), y: TOP, width: x(typical) - x(-typical), height: BOTTOM - TOP, class: 'race-lane race-lane--typical' }),
+      crowd ? svg('rect', { x: x(crowd.p10), y: TOP, width: Math.max(4, x(crowd.p90) - x(crowd.p10)), height: BOTTOM - TOP, class: 'race-lane race-lane--crowd' }) : null,
+      crowd ? svg('rect', { x: x(crowd.p10), y: BOTTOM, width: Math.max(4, x(crowd.p90) - x(crowd.p10)), height: 12, class: 'race-goal' }) : null,
+      svg('line', { x1: 0, x2: AW, y1: BOTTOM, y2: BOTTOM, class: 'race-floor' }))
+    posts.replaceChildren(...people.slice(0, 7).map((p, i) => svg('rect', {
+      x: x(p.f.p10), y: BOTTOM + 20 + i * 8, width: Math.max(3, x(p.f.p90) - x(p.f.p10)), height: 4, class: 'race-post', 'data-i': i })))
+  }
+  drawLanes()
+
+  const priceEl = el('b', { class: 'race-price' }, 'BNB')
+  const moveEl = el('span', { class: 'race-move' }, 'reading the live price')
+  const status = el('p', { class: 'race-status' }, 'The ball drops in as soon as the live price arrives.')
+  const ticks = el('div', { class: 'race-ticks', 'aria-hidden': 'true' })
+  const card = el('div', { class: 'race' },
+    el('div', { class: 'race-hud' },
+      el('div', {}, priceEl, moveEl),
+      el('div', { class: 'race-clock' }, el('span', {}, 'lands in '), el('b', { 'data-countdown': '' }, '--:--:--'))),
+    el('div', { class: 'race-stage' },
+      el('span', { class: 'race-y race-y--top' }, '00:00 UTC'),
+      arena,
+      el('span', { class: 'race-y race-y--bottom' }, 'midnight: it lands'),
+      ticks),
+    status)
+
+  const drawTicks = () => ticks.replaceChildren(...[-domain, -domain / 2, 0, domain / 2, domain].map((v) =>
+    el('span', { style: `left:${(x(v) / AW) * 100}%` }, pct(v, 0))))
+  drawTicks()
+
+  const show = (r) => {
+    if (Math.abs(r.moveBps) * 1.15 > domain) { domain = Math.ceil((Math.abs(r.moveBps) * 1.3) / 100) * 100; drawLanes(); drawTicks() }
+    const pts = r.points.map((p) => `${x(p.bps).toFixed(1)},${yOf(p.t).toFixed(1)}`)
+    trail.setAttribute('points', pts.join(' '))
+    const last = r.points[r.points.length - 1]
+    const bx = x(last.bps), by = yOf(Math.max(last.t, data.chainNow))
+    ball.style.transform = `translate(${bx}px,${by}px)`
+    drop.setAttribute('x1', bx); drop.setAttribute('x2', bx); drop.setAttribute('y1', by)
+    mark.style.transform = `translateX(${bx - AW / 2}px)`
+    nowLine.setAttribute('y1', yOf(data.chainNow)); nowLine.setAttribute('y2', yOf(data.chainNow))
+    priceEl.textContent = `BNB $${r.nowUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+    moveEl.textContent = `${pct(r.moveBps)} today`
+    moveEl.className = `race-move ${r.moveBps >= 0 ? 'up' : 'down'}`
+    const v = raceVerdict(r.moveBps, crowd, typical, people.map((p) => p.f))
+    posts.querySelectorAll('.race-post').forEach((n) => {
+      const f = people[Number(n.dataset.i)].f
+      n.classList.toggle('on', f.p10 <= r.moveBps && r.moveBps <= f.p90)
+    })
+    card.classList.toggle('race--in', v.zone === 'in' || (v.zone === null && v.typical === 'in'))
+    card.classList.toggle('race--out', v.zone === 'high' || v.zone === 'low' || (v.zone === null && v.typical === 'out'))
+    status.textContent = v.zone === 'in' ? `In the zone. ${v.onTarget} of ${v.of} on target.`
+      : v.zone === 'high' ? `Above everyone's range. ${v.onTarget} of ${v.of} on target.`
+      : v.zone === 'low' ? `Below everyone's range. ${v.onTarget} of ${v.of} on target.`
+      : v.typical === 'in' ? "Inside a typical day. People's zone appears as forecasts open."
+      : 'Outside a typical day. A big day for BNB.'
+    card.classList.add('race--live')
+  }
+
+  // first read, then every 30 s while the card is on screen
+  raceData({ rpc: cfg.rpc, contract: data.contract, today: data.today }).then((r) => {
+    if (!r) { status.textContent = "Today's opening price is not readable yet. Reload in a minute."; return }
+    show(r)
+    const id = setInterval(async () => {
+      if (!card.isConnected) return clearInterval(id)
+      try { show(await r.refresh()) } catch {}
+    }, 30000)
+  }).catch(() => { status.textContent = 'The live price could not be read. Reload to try again.' })
+  return card
+}
+
 /* ---------------------------------------------------------------- today */
 export function dashboard(app) {
   const { data } = app
@@ -250,6 +351,7 @@ export function dashboard(app) {
   else if (next.committed) { answer = `${people(next.committed)} sealed a forecast for ${dayLabel(data.today + 1)}.`; detail = null }
   else answer = 'No forecasts yet. Be the first.'
 
+  const race = raceCard(app)
   const todayWall = wall(app, data.today)
   const nextWall = wall(app, data.today + 1)
   const priceNow = el('span', { class: 'td-price' })
@@ -274,10 +376,10 @@ export function dashboard(app) {
       el('p', {}, 'One Binance Agent ID, one vote. No bots.'),
       app.pill ? el('span', { class: 'pill' }, app.pill) : null),
     frame('card td-answer',
-      el('p', { class: 'td-when' }, `Today, ${dayLabel(data.today)}`, priceNow),
+      el('p', { class: 'td-when' }, `Today, ${dayLabel(data.today)}`, race ? null : priceNow),
       el('p', { class: 'td-big' }, answer),
       detail ? el('p', { class: 'td-detail' }, detail) : null,
-      crowd ? bandStrip({ baseline: t.baseline, crowd: t.crowd, domain: domainFor([t.crowd.p10, t.crowd.p90, t.baseline?.p10, t.baseline?.p90]), labels: { crowd: 'People', baseline: 'Typical day' } }) : null,
+      race ?? (crowd ? bandStrip({ baseline: t.baseline, crowd: t.crowd, domain: domainFor([t.crowd.p10, t.crowd.p90, t.baseline?.p10, t.baseline?.p90]), labels: { crowd: 'People', baseline: 'Typical day' } }) : null),
       todayWall ? el('p', { class: 'wall-head' }, `Today: ${t.revealed ?? 0} opened, ${(t.committed ?? 0) - (t.revealed ?? 0)} sealed`) : null,
       todayWall,
       nextWall ? el('p', { class: 'wall-head' }, `Sealed for ${dayLabel(data.today + 1)}. They open in `, el('b', { 'data-countdown': '' }, '--:--:--')) : null,

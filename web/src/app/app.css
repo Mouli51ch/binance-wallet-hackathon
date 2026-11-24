@@ -132,6 +132,49 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .you .you-warn{color:var(--o);font-weight:600}
 .you .you-warn b{font-variant-numeric:tabular-nums}
 
+/* the live race: the day as a drop, BNB as the ball, people's range as the goal */
+.race{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px 16px 14px;border:1px solid var(--line);
+  background:radial-gradient(120% 70% at 50% 100%,rgba(255,77,0,.10),transparent 60%),#030303;overflow:hidden}
+.race-hud{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.race-price{font:600 clamp(22px,2.6vw,30px)/1 var(--sans);color:var(--w1);letter-spacing:-.02em;margin-right:12px;font-variant-numeric:tabular-nums}
+.race-move{font:600 14px/1 var(--mono);color:var(--g1);font-variant-numeric:tabular-nums}
+.race-move.up{color:#3ddc97}.race-move.down{color:#ff6b6b}
+.race-clock{font:500 12px/1 var(--mono);color:var(--g1)}
+.race-clock b{color:var(--w1);font-size:15px;font-variant-numeric:tabular-nums}
+.race-stage{position:relative}
+.race-arena{width:100%;height:auto;display:block}
+.race-y{position:absolute;left:4px;font:500 10px/1 var(--mono);color:var(--g1);pointer-events:none}
+.race-y--top{top:2px}.race-y--bottom{top:calc(402 / 470 * 100% - 16px)}
+.race-ticks{position:relative;height:14px}
+.race-ticks span{position:absolute;transform:translateX(-50%);font:500 11px/1 var(--mono);color:var(--g1)}
+.race-grid{stroke:rgba(255,255,255,.05);stroke-width:1}
+.race-zero{stroke:rgba(255,255,255,.2);stroke-width:1;stroke-dasharray:2 6}
+.race-lane--typical{fill:rgba(255,255,255,.015);stroke:rgba(230,230,230,.28);stroke-width:1.5;stroke-dasharray:6 6}
+.race-lane--crowd{fill:rgba(255,77,0,.09);stroke:rgba(255,77,0,.45);stroke-width:1.5}
+.race-goal{fill:#ff4d00;filter:drop-shadow(0 0 10px rgba(255,77,0,.85));animation:race-goal 2.4s ease-in-out infinite}
+.race-floor{stroke:rgba(255,255,255,.28);stroke-width:1.5}
+.race-drop{stroke:rgba(255,77,0,.45);stroke-width:1.5;stroke-dasharray:2 7;transition:all 1.6s cubic-bezier(.2,.9,.25,1)}
+.race-mark{fill:#ff4d00;transition:transform 1.6s cubic-bezier(.2,.9,.25,1);filter:drop-shadow(0 0 6px rgba(255,77,0,.9))}
+.race-now{stroke:rgba(255,255,255,.14);stroke-width:1;stroke-dasharray:3 9}
+.race-trail{fill:none;stroke:#fff;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;opacity:.9;
+  stroke-dasharray:8000;stroke-dashoffset:8000;animation:race-draw 2.4s ease-out .2s forwards}
+.race-ballg{transition:transform 1.6s cubic-bezier(.2,.9,.25,1)}
+.race-ball{fill:#fff;filter:drop-shadow(0 0 7px rgba(255,255,255,.9)) drop-shadow(0 0 18px rgba(255,77,0,.9))}
+.race--in .race-ball{fill:#ff4d00}
+.race-ring{fill:none;stroke:#ff4d00;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:race-ring 1.8s ease-out infinite}
+.race-post{fill:rgba(255,255,255,.2);transition:fill .5s}
+.race-post.on{fill:#ff4d00;filter:drop-shadow(0 0 6px rgba(255,77,0,.9))}
+.race-status{font:600 15px/1.35 var(--sans);color:var(--w1)}
+.race--in .race-status{color:var(--o)}
+.race:not(.race--live) .race-ballg{opacity:.45}
+@keyframes race-goal{50%{opacity:.55}}
+@keyframes race-draw{to{stroke-dashoffset:0}}
+@keyframes race-ring{0%{transform:scale(1);opacity:.9}100%{transform:scale(3.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .race *{animation:none!important;transition:none!important}
+  .race-trail{stroke-dashoffset:0}
+}
+
 /* seals: each forecast is a tile, sealed until its owner opens it */
 .wall-head{font:500 13px/1.4 var(--mono);color:var(--g1)}
 .wall-head b{color:var(--w1);font-weight:600;font-variant-numeric:tabular-nums}
