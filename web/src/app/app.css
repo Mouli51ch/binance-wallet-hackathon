@@ -91,6 +91,22 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .prompt-text{font:400 14px/1.5 var(--mono);color:var(--w1)}
 .steps-mini{display:flex;flex-direction:column;gap:6px;padding-left:18px;list-style:decimal;color:var(--w2);font-size:14px}
 
+/* today: what Kodo is, then the one answer for today */
+.td-intro{display:flex;flex-direction:column;gap:12px;padding-bottom:8px}
+.td-intro h1{color:var(--w1);max-width:22ch}
+.td-intro p{color:var(--w2);font-size:clamp(15px,1.4vw,17px);line-height:1.55;max-width:62ch}
+.td-intro .pill{align-self:flex-start;font:500 12px/1 var(--mono)}
+.td-answer{gap:18px}
+.td-when{font:500 13px/1.4 var(--mono);color:var(--g1)}
+.td-price{color:var(--w1)}
+.td-big{font:500 clamp(24px,3vw,38px)/1.2 var(--sans);letter-spacing:-.02em;color:var(--w1);max-width:28ch}
+.td-detail{color:var(--w2);font-size:15px;line-height:1.55;max-width:60ch;margin-top:-6px}
+.td-answer .chart{max-width:760px}
+.td-clock{font:500 13px/1.5 var(--mono);color:var(--g1);padding-top:14px;border-top:1px solid var(--line)}
+.td-clock b{color:var(--w1);font-weight:600;font-variant-numeric:tabular-nums}
+.td-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px}
+.td-actions .arrow{align-self:center}
+
 /* make a forecast: one sentence that says what you are forecasting, quick starts, three plain sliders */
 .fc-main{gap:22px}
 .fc-price{font:500 13px/1.5 var(--mono);color:var(--g1)}

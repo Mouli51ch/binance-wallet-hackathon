@@ -46,7 +46,7 @@ function addrMatcher(q) {
   }
 }
 
-/** The three stages every forecast goes through, with today's live numbers. */
+/** How Kodo works in three steps, each with today's live number. */
 function lifecycle(app) {
   const { data } = app, h = data.history
   const t = h.days[data.today] ?? {}, tm = h.days[data.today + 1] ?? {}
@@ -54,14 +54,14 @@ function lifecycle(app) {
     el('span', { class: 'step-n', 'aria-hidden': 'true' }, n),
     el('h3', { class: 'step-title' }, title), el('p', { class: 'step-body' }, body), el('p', { class: 'step-live' }, ...live))
   return frame('card card--steps',
-    el('h2', { class: 'card-title' }, 'How a forecast works'),
+    el('h2', { class: 'card-title' }, 'How it works'),
     el('ol', { class: 'steps' },
-      step('1', 'Locked', 'You send a low, a middle and a high for tomorrow. Only a fingerprint of the numbers goes on chain, so nobody can see or copy them yet.',
-        [`${tm.committed ?? 0} locked for ${dayLabel(data.today + 1)}`]),
-      step('2', 'Revealed', 'On that day your agent reveals the numbers. Now everyone can see them, and they join the crowd band.',
-        [`${t.revealed ?? 0} of ${t.committed ?? 0} revealed for today`]),
-      step('3', 'Scored', "At 00:00 UTC the day closes on Chainlink's BNB price. Each forecast is scored against the baseline.",
-        [el('b', { 'data-countdown': '' }, '--:--:--'), ' until today is scored'])))
+      step('1', 'Forecast', "Tell your AI agent a range for tomorrow's BNB move. You confirm it yourself in the Binance app.",
+        [`${tm.committed ?? 0} ${tm.committed === 1 ? 'forecast' : 'forecasts'} for ${dayLabel(data.today + 1)} so far`]),
+      step('2', 'Reveal', 'The next day your numbers go public. Until then they stay hidden, so nobody can copy them.',
+        [`${t.revealed ?? 0} of ${t.committed ?? 0} revealed today`]),
+      step('3', 'Score', 'At midnight UTC the real BNB price decides. People who beat a typical-day guess rise on the leaderboard.',
+        [el('b', { 'data-countdown': '' }, '--:--:--'), ' until the next score'])))
 }
 
 const STAGE = { locked: 'Locked', revealed: 'Revealed', scored: 'Scored', missed: 'Not revealed' }
@@ -72,12 +72,12 @@ function forecastTable(rows, today, { voter = true } = {}) {
     return r.stage === 'locked' ? `Hidden until revealed on ${dayLabel(r.day)}` : 'Never revealed'
   }
   const result = (r) => {
-    if (r.score) return `${r.beat ? 'Beat the baseline' : 'Baseline won'}: ${r.score.loss.toFixed(1)} vs ${r.score.baselineLoss.toFixed(1)}`
+    if (r.score) return `${r.beat ? 'Beat a typical day' : 'Typical day did better'}: ${r.score.loss.toFixed(1)} vs ${r.score.baselineLoss.toFixed(1)}`
     if (r.stage === 'missed') return 'Scored as a miss when the day settles'
     return `Scored after ${dayLabel(r.day)} ends, 00:00 UTC`
   }
   return el('div', { class: 'scroll-x' }, el('table', { class: 'board board--forecasts' },
-    el('caption', {}, "Low / middle / high of BNB's move that day. Scores are pinball loss in bps; lower is better."),
+    el('caption', {}, "Low / middle / high of BNB's move that day. Scores are a loss: lower is better."),
     el('thead', {}, el('tr', {}, ...['Day', voter && 'Forecaster', 'Stage', 'Low / middle / high', 'BNB', 'Result'].filter(Boolean).map((t) => el('th', { scope: 'col' }, t)))),
     el('tbody', {}, ...rows.map((r) => el('tr', {},
       el('td', {}, dayLabel(r.day)),
@@ -88,54 +88,66 @@ function forecastTable(rows, today, { voter = true } = {}) {
       el('td', { class: r.score ? (r.beat ? 'up' : 'down') : 'muted' }, result(r)))))))
 }
 
-/* ---------------------------------------------------------------- dashboard */
+/* ---------------------------------------------------------------- today */
 export function dashboard(app) {
   const { data } = app
   const h = data.history
   const t = h.days[data.today] ?? {}
   const y = h.days[data.today - 1]
-  const domain = domainFor([t.crowd?.p10, t.crowd?.p90, t.baseline?.p10, t.baseline?.p90, y?.result?.changeBps])
-  const latest = forecastRows(h, data.today).slice(0, 5)
+  const next = h.days[data.today + 1] ?? {}
+  const people = (n) => `${n} ${n === 1 ? 'person' : 'people'}`
+  const crowd = validBand(t.crowd) && t.revealed > 0
+  const typical = t.baseline?.p90
+
+  // the one answer a visitor came for, in a sentence
+  let answer, detail
+  if (crowd) {
+    answer = `${people(t.revealed)} ${t.revealed === 1 ? 'expects' : 'expect'} BNB to move between ${pct(t.crowd.p10, 1)} and ${pct(t.crowd.p90, 1)} today.`
+    detail = `Their average best guess is ${pct(t.crowd.p50, 1)}.` + (typical ? ` A typical day right now is ${pct(-typical, 1)} to ${pct(typical, 1)}.` : '')
+  } else if (t.committed) {
+    answer = `${people(t.committed)} forecast today. Their numbers appear as they reveal them.`
+    detail = 'Forecasts stay hidden for a day, so nobody can copy them.'
+  } else if (next.committed) {
+    answer = `${people(next.committed)} ${next.committed === 1 ? 'has' : 'have'} made a forecast for tomorrow, ${dayLabel(data.today + 1)}.`
+    detail = 'Forecasts stay hidden until the next day, so nobody can copy them. Come back tomorrow to see what they expect.'
+  } else {
+    answer = 'No forecasts yet.'
+    detail = 'Be the first: it takes one message to your AI agent.'
+  }
+
+  const priceNow = el('span', { class: 'td-price' })
+  bnbPrice().then((p) => { priceNow.textContent = `BNB is $${p.usd.toLocaleString('en-US', { maximumFractionDigits: 2 })} right now.` }).catch(() => {})
+
   const top = rankRows(app).filter((r) => r.ranked).slice(0, 3)
+  const side = [
+    y?.result && frame('card',
+      el('h2', { class: 'card-title' }, `Yesterday, ${dayLabel(data.today - 1)}`),
+      el('p', { class: 'big-num' }, `BNB ${pct(y.result.changeBps)}`),
+      y.crowd ? el('p', { class: 'verdict' }, y.result.crowdLoss < y.result.baselineLoss ? 'People beat the typical-day guess.' : 'The typical-day guess did better.') : el('p', { class: 'note' }, 'Nobody revealed a forecast for that day.'),
+      link('#/history', 'See every day', 'arrow')),
+    top.length > 0 && frame('card',
+      el('h2', { class: 'card-title' }, 'Best forecasters'),
+      el('ol', { class: 'mini-board' }, ...top.map((r) => el('li', {},
+        link(`#/f/${r.full}`, r.address, 'mono'), el('span', { class: r.skillBps >= 0 ? 'up' : 'down' }, r.skillBps >= 0 ? 'beats a typical day' : 'behind a typical day')))),
+      link('#/leaderboard', 'Full leaderboard', 'arrow')),
+  ].filter(Boolean)
 
   return el('section', { class: 'view' },
-    head(`Today, ${dayLabel(data.today)}`, 'The crowd band is the average of every revealed low, middle and high.', app.pill),
-    frame('card card--hero',
-      validBand(t.crowd)
-        ? el('p', { class: 'lead' }, `${t.revealed} verified ${t.revealed === 1 ? 'person expects' : 'people expect'} BNB between ${pct(t.crowd.p10)} and ${pct(t.crowd.p90)} today, ${pct(t.crowd.p50)} in the middle.`)
-        : el('p', { class: 'lead' }, t.committed ? `${t.committed} verified ${t.committed === 1 ? 'person' : 'people'} locked a forecast for today. The band opens as they reveal.`
-          : h.days[data.today + 1]?.committed ? `${h.days[data.today + 1].committed} verified ${h.days[data.today + 1].committed === 1 ? 'person has' : 'people have'} locked a forecast for ${dayLabel(data.today + 1)}. The numbers open when they are revealed that day.`
-          : 'No forecasts for today yet.'),
-      bandStrip({ baseline: t.baseline, crowd: validBand(t.crowd) ? t.crowd : null, domain }),
-      el('p', { class: 'note' }, 'The baseline is "no change", widened by recent volatility. The crowd only shows skill if it beats it over time.')),
+    el('header', { class: 'td-intro' },
+      el('h1', { class: 'f-h2' }, 'What do real people expect BNB to do next?'),
+      el('p', {}, 'Every day, verified people forecast how much BNB will move. Each one holds a Binance Agent ID, so one person is one voice and bots cannot fake the crowd. Every forecast is then scored against the real price.'),
+      app.pill ? el('span', { class: 'pill' }, app.pill) : null),
+    frame('card td-answer',
+      el('p', { class: 'td-when' }, `Today, ${dayLabel(data.today)}. `, priceNow),
+      el('p', { class: 'td-big' }, answer),
+      el('p', { class: 'td-detail' }, detail),
+      crowd ? bandStrip({ baseline: t.baseline, crowd: t.crowd, domain: domainFor([t.crowd.p10, t.crowd.p90, t.baseline?.p10, t.baseline?.p90]), labels: { crowd: 'People', baseline: 'Typical day' } }) : null,
+      el('p', { class: 'td-clock' }, 'Today closes in ', el('b', { 'data-countdown': '' }, '--:--:--'), ', at 00:00 UTC. Then every forecast for today is scored.'),
+      el('div', { class: 'td-actions' },
+        link('#/forecast', 'Make your forecast', 'btn'),
+        link('#/forecasts', 'See all forecasts', 'arrow'))),
     lifecycle(app),
-    frame('card',
-      el('h2', { class: 'card-title' }, 'Latest forecasts'),
-      latest.length ? forecastTable(latest, data.today) : el('p', { class: 'note' }, 'No forecasts yet. The first one appears here as soon as it is locked.'),
-      link('#/forecasts', 'See every forecast, or find yours', 'arrow')),
-    el('div', { class: 'cols2' },
-      frame('card',
-        el('h2', { class: 'card-title' }, `Yesterday, ${dayLabel(data.today - 1)}`),
-        y?.result
-          ? el('div', {},
-            el('p', { class: 'big-num' }, `BNB ${pct(y.result.changeBps)}`),
-            el('p', { class: 'verdict' }, y.result.crowdLoss < y.result.baselineLoss ? 'The crowd beat the baseline.' : 'The baseline beat the crowd.'),
-            el('p', { class: 'note' }, `Crowd loss ${y.result.crowdLoss.toFixed(1)} bps against the baseline's ${y.result.baselineLoss.toFixed(1)}. Lower is better.`))
-          : data.today - 1 < data.startDay
-            ? el('p', { class: 'note' }, `Before the contract's first day, ${dayLabel(data.startDay)}. Nothing to settle.`)
-            : el('p', { class: 'note' }, 'Not settled yet. Anyone can settle it with the Chainlink round from 00:00 UTC.'),
-        link('#/history', 'See every day', 'arrow')),
-      frame('card',
-        el('h2', { class: 'card-title' }, 'Top forecasters'),
-        top.length
-          ? el('ol', { class: 'mini-board' }, ...top.map((r) => el('li', {},
-            link(`#/f/${r.full}`, r.address, 'mono'), el('span', { class: r.skillBps >= 0 ? 'up' : 'down' }, `${signed(r.skillBps)} bps a day`))))
-          : el('p', { class: 'note' }, `Nobody has ${MIN_SCORED_DAYS} scored days yet.`),
-        link('#/leaderboard', 'Full leaderboard', 'arrow'))),
-    frame('card card--cta',
-      el('div', {}, el('h2', { class: 'card-title' }, 'Make your own forecast'),
-        el('p', { class: 'note' }, 'Set a low, middle and high, see how that band would have scored on past days, and get the prompt for your agent.')),
-      link('#/forecast', 'Make a forecast', 'btn')),
+    side.length === 2 ? el('div', { class: 'cols2' }, ...side) : side[0] ?? null,
   )
 }
 
@@ -143,11 +155,11 @@ export function dashboard(app) {
 export function startCountdown(root, chainNow) {
   const t0 = Date.now()
   const tickFn = () => {
-    const n = root.querySelector('[data-countdown]'); if (!n) return false
+    const ns = root.querySelectorAll('[data-countdown]'); if (!ns.length) return false
     const now = chainNow + Math.floor((Date.now() - t0) / 1000)
     const left = 86400 - (now % 86400)
     const p = (v) => String(v).padStart(2, '0')
-    n.textContent = `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`
+    for (const n of ns) n.textContent = `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`
     return true
   }
   if (!tickFn()) return () => {}
