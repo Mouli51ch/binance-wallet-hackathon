@@ -290,13 +290,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, run log>
 
 ### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b04-app
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 | Owner: Mouli | Branch: feature/t-b04-app
 - Suggested: Mouli
 - Depends-on: T-B02
 - Touches: web/
 - Serves: Practicality (judged) ; Completion (judged)
 - Acceptance: a read-only app at app.html with 5 views reachable from the landing page: dashboard (today's crowd band against the baseline band, countdown to 00:00 UTC, commits for tomorrow), history (every settled day: BNB move, crowd band, baseline band, both losses), leaderboard (sortable, address search, 5 scored days to rank), forecaster page per address (skill, in-band %, streak, missed reveals, each day's band against the outcome), make a forecast (low, middle and high sliders, how that band would have scored on past settled days, the exact prompt for the agent); 0 wallet-connect code; 0 `name.ai` names; works at 375 px; every view with forecasts carries "Forecasting signal only. Not financial advice."; tested on the T-A07 fork
-- Evidence: <PR link, fork screenshots>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 ; Finding: events alone rebuild every day and record, but give a baseline only for settled days (today's comes from baselineBand); on the fork the crowd beat the baseline on 4 of 5 settled days, inside its band 80% of the time
 
 ### T-C01, Agent skill and pulse.mjs
 - Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-c01-agent-skill

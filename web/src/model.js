@@ -50,6 +50,7 @@ export function holderRow(s) {
   if (!Number.isInteger(s.daysInBand) || s.daysInBand < 0 || s.daysInBand > scored) return null
   return {
     address: shortAddr(s.address),
+    full: getAddress(s.address),
     daysScored: scored,
     skillBps: (s.totalBaselineLoss - s.totalLoss) / scored,
     calibration: s.daysInBand / scored,
@@ -84,4 +85,54 @@ export function dayResult(d) {
     crowdBeatBaseline: d.crowdLoss < d.baselineLoss,
     inCrowdBand: d.crowd.p10 <= d.changeBps && d.changeBps <= d.crowd.p90,
   }
+}
+
+/* ------------------------------------------------ the contract's maths, mirrored for display */
+
+/** PulseForecast.pinballLoss: p10/p50/p90 against outcome y (bps), in tenths of a bps. */
+export function pinballTenths(p10, p50, p90, y) {
+  const pin = (q, x) => (y - x >= 0 ? q * (y - x) : (10 - q) * (x - y))
+  return pin(1, p10) + pin(5, p50) + pin(9, p90)
+}
+
+/** PulseForecast.baselineBand half-width for a sigma in bps: sigma * 1.2816, rounded down. */
+export function baselineHalf(sigmaBps) {
+  return Math.floor((sigmaBps * 12816) / 10000)
+}
+
+/** Solidity int division of a band sum by n (truncates toward zero), as crowdBand() does. */
+export function crowdAverage(sum, n) {
+  return Math.trunc(sum / n)
+}
+
+/** How a band would have scored on past settled days: { days, beat, avgSavedBps }. */
+export function backtest(band, settledDays) {
+  let beat = 0, saved = 0
+  for (const d of settledDays) {
+    const loss = pinballTenths(band.p10, band.p50, band.p90, d.changeBps) / 10
+    if (loss < d.baselineLoss) beat++
+    saved += d.baselineLoss - loss
+  }
+  return { days: settledDays.length, beat, avgSavedBps: settledDays.length ? saved / settledDays.length : 0 }
+}
+
+/**
+ * Every forecast in the history with its stage, newest day first:
+ *   locked    committed; the numbers stay hidden until the forecaster reveals them on that day
+ *   revealed  numbers public; scored after the day ends at 00:00 UTC
+ *   scored    compared with BNB's move and the baseline
+ *   missed    the day passed without a reveal (scored as 2x the baseline loss)
+ */
+export function forecastRows(history, today) {
+  const rows = []
+  for (const [voter, v] of Object.entries(history.voters)) {
+    const days = new Set([...Object.keys(v.committed ?? {}), ...Object.keys(v.forecasts), ...Object.keys(v.scores)].map(Number))
+    for (const day of days) {
+      const band = v.forecasts[day] ?? null, score = v.scores[day] ?? null
+      const stage = score ? 'scored' : band ? 'revealed' : day >= today ? 'locked' : 'missed'
+      rows.push({ voter, day, stage, band, score, change: history.days[day]?.result?.changeBps ?? null,
+        beat: score ? score.loss < score.baselineLoss : null })
+    }
+  }
+  return rows.sort((a, b) => b.day - a.day || a.voter.localeCompare(b.voter))
 }

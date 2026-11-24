@@ -38,3 +38,22 @@ test('day result states', () => {
   const r = dayResult({ settled: true, changeBps: 118, crowd, crowdLoss: 139, baselineLoss: 162 })
   assert.deepEqual(r, { state: 'settled', changeBps: 118, crowdBeatBaseline: true, inCrowdBand: true })
 })
+
+// Every forecast and where it is: locked (numbers hidden), revealed, scored, or never revealed.
+test('forecastRows gives each forecast its stage, newest day first', async () => {
+  const { forecastRows } = await import('../src/model.js')
+  const A = '0x00000000000000000000000000000000000000a1'
+  const history = {
+    days: { 9: { day: 9, result: { changeBps: -46 } }, 10: { day: 10 }, 11: { day: 11 } },
+    voters: { [A]: {
+      committed: { 8: true, 9: true, 10: true, 11: true },
+      forecasts: { 9: { p10: -100, p50: 0, p90: 100 }, 10: { p10: -50, p50: 5, p90: 60 } },
+      scores: { 9: { loss: 12.5, baselineLoss: 20, inBand: true } },
+    } },
+  }
+  const rows = forecastRows(history, 10)
+  assert.deepEqual(rows.map((r) => [r.day, r.stage]), [[11, 'locked'], [10, 'revealed'], [9, 'scored'], [8, 'missed']])
+  assert.equal(rows[0].band, null) // locked: the numbers are not public yet
+  assert.equal(rows[2].change, -46)
+  assert.equal(rows[2].beat, true)
+})
