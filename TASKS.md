@@ -263,7 +263,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
-- Status: claimed | Owner: Jishnu | Branch: feature/t-a03-deploy
+- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a03-deploy
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
 - Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
