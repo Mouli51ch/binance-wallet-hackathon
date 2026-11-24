@@ -44,14 +44,19 @@ main{padding-bottom:40px}
 .formula{margin:0;font:400 14px/1.75 var(--mono);color:var(--o);white-space:pre;overflow-x:auto}
 .sheet__note{color:var(--w2);font-weight:500}
 
-/* hero: ThreeUI CRT terminal behind the headline. The frame fills the hero box; the hero's
-   content sits above it, and its framed boxes get a dark glass so the copy stays readable
-   over the typing log. */
-.hero{padding-bottom:4rem}
-.hero .shader-frame{position:absolute;inset:0;z-index:0;pointer-events:none}
-.hero > :not(.shader-frame){position:relative;z-index:1}
-.hero .framed{background:rgba(0,0,0,.66);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-.hero .eyebrow{color:var(--w2)}
+/* hero: the ThreeUI CRT terminal is a framed monitor beside the copy, never under it.
+   Desktop: copy in columns 1-7, monitor in 8-12. Below 1024px it stacks under the buttons.
+   The frame grades the green phosphor to a single amber tone so it reads in the site's
+   orange (--o, #ff4d00); the component's own props stay as configured. */
+.crt-monitor{grid-column:1/-1;margin-top:32px;padding:10px;background:#000}
+.crt-monitor .shader-frame{position:relative;aspect-ratio:4/3;overflow:hidden;
+  filter:grayscale(1) sepia(1) saturate(4.2) hue-rotate(-24deg) brightness(1.08) contrast(1.08)}
+@media (min-width:1024px){
+  .hero article{grid-column:1/8}
+  /* as tall as the copy column, so the 19-line log types at a readable size */
+  .crt-monitor{grid-column:8/13;margin-top:0;align-self:stretch;display:flex;flex-direction:column}
+  .crt-monitor .shader-frame{flex:1;aspect-ratio:auto;min-height:420px}
+}
 
 /* live data: today, yesterday, leaderboard */
 .inner--one .sheet{grid-column:1/-1}
