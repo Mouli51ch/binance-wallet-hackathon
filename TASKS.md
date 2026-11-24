@@ -205,7 +205,7 @@ Tick in a `board/` PR as items land.
 # P0, Nov 23. Nothing branches until T-A00 lands.
 
 ### T-A00, Repo, CI and the board, copied from hydra
-- Status: claimed 2026-11-23 | Owner: Jishnu | Branch: feature/t-a00-board
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/1 | Owner: Jishnu | Branch: feature/t-a00-board
 - Suggested: Jishnu
 - Depends-on: OP-1
 - Touches: CLAUDE.md, TASKS.md, OPERATOR_TODO.md, DECISIONS.md, README.md, .env.example, .gitignore, .gitattributes, PLAN.md, docs/ARCHITECTURE.md, .github/, scripts/board.mjs, .claude/
