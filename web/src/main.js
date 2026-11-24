@@ -2,6 +2,8 @@
 // Everything is built with textContent, never innerHTML: chain data is data, not markup.
 import { getAddress } from 'viem'
 import './shaders/threeui-crt.css'
+import './scroll-reveal.css'
+import { startScrollReveal } from './scroll-reveal.js'
 import { mountCrtBackground } from './shaders/crt/CrtBackground.js'
 import { data } from './mock-data.js'
 import { dayLabel, dayResult, leaderboard, MIN_SCORED_DAYS, pct, validBand } from './model.js'
@@ -159,3 +161,6 @@ for (const [id, render] of parts) {
     root.textContent = 'This section could not load its data. Reload the page; if it keeps failing, the data source is down.'
   }
 }
+
+// Kage scroll animation: runs after the data sections exist so their cards rise in too.
+startScrollReveal()
