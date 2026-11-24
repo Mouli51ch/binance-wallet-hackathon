@@ -88,6 +88,25 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .prompt-text{font:400 14px/1.5 var(--mono);color:var(--w1)}
 .steps-mini{display:flex;flex-direction:column;gap:6px;padding-left:18px;list-style:decimal;color:var(--w2);font-size:14px}
 
+/* how a forecast works: three stages side by side, stacked on phones */
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.step{background:#000;padding:18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.step-n{font:600 12px/1 var(--mono);color:var(--o)}
+.step-title{font:600 18px/1.2 var(--sans);color:var(--w1)}
+.step-body{color:var(--w2);font-size:14px;line-height:1.5;flex:1}
+.step-live{font:500 12px/1.4 var(--mono);color:var(--g1);padding-top:8px;border-top:1px solid var(--line)}
+.step-live b{color:var(--w1);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* a forecast's stage */
+.stage{display:inline-flex;align-items:center;gap:7px;font:600 12px/1 var(--mono);white-space:nowrap}
+.stage::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.stage--locked{color:var(--g1)}
+.stage--revealed{color:var(--w1)}
+.stage--scored{color:var(--o)}
+.stage--missed{color:var(--g1);text-decoration:line-through}
+.board td.muted{color:var(--g1)}
+.board--forecasts td{white-space:nowrap}
+
 /* footer and small-screen tabs */
 .app-foot{max-width:var(--maxw);width:100%;margin:0 auto;padding:24px var(--gutter) 34px;border-top:1px solid var(--line);
   display:flex;flex-wrap:wrap;gap:8px 28px;font:500 12px/1.5 var(--mono);color:var(--g1)}
@@ -98,6 +117,7 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 @media (max-width:1023px){
   .app-main{padding-top:78px}
   .cols2{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
   .app-tabs{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:1000;
     background:rgba(8,8,8,.94);border-top:1px solid var(--line);backdrop-filter:blur(8px)}
   .app-tabs a{padding:14px 4px calc(14px + env(safe-area-inset-bottom));text-align:center;font:600 12px/1 var(--mono);color:var(--g1)}

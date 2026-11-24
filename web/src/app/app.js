@@ -1,6 +1,7 @@
 // T-B04: the Kodo app. Loads the data once (the contract named in config.js, or the labelled
 // sample), then routes between five read-only views on the URL hash:
 //   #/            today          #/history       every settled day
+//   #/forecasts   every forecast and its stage, searchable by address
 //   #/leaderboard forecasters    #/f/0x...       one forecaster
 //   #/forecast    make a forecast (prompt for your agent; this site never signs)
 import { getAddress } from 'viem'
@@ -8,7 +9,7 @@ import './app.css'
 import { loadChain } from '../chain.js'
 import { siteConfig } from '../config.js'
 import { sampleData } from './sample.js'
-import { dashboard, el, forecast, forecaster, history, leaderboardView, startCountdown } from './views.js'
+import { dashboard, el, forecast, forecaster, forecastsView, history, leaderboardView, startCountdown } from './views.js'
 
 const view = document.getElementById('view')
 const app = { data: null, cfg: { network: 'sample' }, pill: 'Sample data' }
@@ -16,10 +17,11 @@ let stopTimer = () => {}
 
 const ROUTES = [
   [/^#?\/?$/, 'dashboard', () => dashboard(app)],
-  [/^#\/history$/, 'history', () => history(app)],
+  [/^#\/history$/, 'dashboard', () => history(app)],
+  [/^#\/forecasts$/, 'forecasts', () => forecastsView(app)],
   [/^#\/leaderboard$/, 'leaderboard', () => leaderboardView(app)],
   [/^#\/forecast$/, 'forecast', () => forecast(app)],
-  [/^#\/f\/(.+)$/, 'leaderboard', (m) => forecaster(app, safeDecode(m[1]))],
+  [/^#\/f\/(.+)$/, 'forecasts', (m) => forecaster(app, safeDecode(m[1]))],
 ]
 
 // a malformed % in a shared link must reach forecaster() as text, so it can say "Not an address"
@@ -39,7 +41,7 @@ function route() {
     console.error(e)
     view.replaceChildren(el('p', { class: 'note' }, 'This view could not be drawn from the data. Reload the page; if it keeps failing, report the address in the bar.'))
   }
-  if (name === 'dashboard') stopTimer = startCountdown(view, app.data.chainNow)
+  stopTimer = startCountdown(view, app.data.chainNow) // a no-op on views without a countdown
   view.focus({ preventScroll: true })
   scrollTo(0, 0)
 }

@@ -21,7 +21,7 @@ export function sampleData(now = Date.now()) {
   const first = today - MOVES.length
   const voters = {}, days = {}, stats = {}
   STYLES.forEach((_, i) => {
-    voters[addr(0xa1 + i)] = { forecasts: {}, scores: {} }
+    voters[addr(0xa1 + i)] = { committed: {}, forecasts: {}, scores: {} }
     stats[addr(0xa1 + i)] = { daysScored: 0, totalLoss: 0, totalBaselineLoss: 0, daysInBand: 0, missedReveals: 0, streak: 0 }
   })
   let variance = 250 * 250
@@ -30,6 +30,7 @@ export function sampleData(now = Date.now()) {
     // the newest holder joins late, so one record is still unranked
     const who = Object.keys(voters).filter((_, i) => i < 6 || d >= today - 2)
     x.committed = who.length
+    for (const a of who) voters[a].committed[d] = true
     if (d > today) continue
     const sums = [0, 0, 0]
     who.forEach((a) => {

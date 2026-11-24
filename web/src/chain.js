@@ -61,10 +61,10 @@ export function toHolder(address, s) {
 export function toHistory(events, sigmaByDay = {}) {
   const days = {}, voters = {}
   const day = (d) => (days[d] ??= { day: d, committed: 0, sums: [0, 0, 0], revealed: 0 })
-  const voter = (a) => (voters[a] ??= { forecasts: {}, scores: {} })
+  const voter = (a) => (voters[a] ??= { committed: {}, forecasts: {}, scores: {} })
   for (const e of events) {
     const d = Number(e.args.day)
-    if (e.eventName === 'Committed') day(d).committed++
+    if (e.eventName === 'Committed') { day(d).committed++; voter(e.args.voter).committed[d] = true }
     if (e.eventName === 'Revealed') {
       const x = day(d), { p10, p50, p90 } = e.args
       x.sums[0] += p10; x.sums[1] += p50; x.sums[2] += p90; x.revealed++

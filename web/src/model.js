@@ -115,3 +115,24 @@ export function backtest(band, settledDays) {
   }
   return { days: settledDays.length, beat, avgSavedBps: settledDays.length ? saved / settledDays.length : 0 }
 }
+
+/**
+ * Every forecast in the history with its stage, newest day first:
+ *   locked    committed; the numbers stay hidden until the forecaster reveals them on that day
+ *   revealed  numbers public; scored after the day ends at 00:00 UTC
+ *   scored    compared with BNB's move and the baseline
+ *   missed    the day passed without a reveal (scored as 2x the baseline loss)
+ */
+export function forecastRows(history, today) {
+  const rows = []
+  for (const [voter, v] of Object.entries(history.voters)) {
+    const days = new Set([...Object.keys(v.committed ?? {}), ...Object.keys(v.forecasts), ...Object.keys(v.scores)].map(Number))
+    for (const day of days) {
+      const band = v.forecasts[day] ?? null, score = v.scores[day] ?? null
+      const stage = score ? 'scored' : band ? 'revealed' : day >= today ? 'locked' : 'missed'
+      rows.push({ voter, day, stage, band, score, change: history.days[day]?.result?.changeBps ?? null,
+        beat: score ? score.loss < score.baselineLoss : null })
+    }
+  }
+  return rows.sort((a, b) => b.day - a.day || a.voter.localeCompare(b.voter))
+}
