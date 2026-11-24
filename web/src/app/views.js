@@ -253,8 +253,15 @@ function raceCard(app) {
 
   const arena = svg('svg', { viewBox: `0 0 ${AW} ${AH}`, class: 'race-arena', role: 'img', 'aria-label': 'Live race: BNB today against what people expect' })
   const lanes = svg('g', {}), trail = svg('polyline', { class: 'race-trail', points: '' })
-  const ring = svg('circle', { r: 12, class: 'race-ring' }), ballDot = svg('circle', { r: 11, class: 'race-ball' })
-  const ball = svg('g', { class: 'race-ballg', style: `transform:translate(${AW / 2}px,${TOP}px)` }, ring, ballDot)
+  const tilt = svg('g', { class: 'race-tilt' },
+    svg('path', { d: 'M -6 9 Q 0 36 6 9 Z', class: 'race-flame' }),
+    svg('path', { d: 'M -3 9 Q 0 25 3 9 Z', class: 'race-flame-core' }),
+    svg('path', { d: 'M -6 2 L -13 13 L -6 10 Z M 6 2 L 13 13 L 6 10 Z', class: 'race-fin' }),
+    svg('path', { d: 'M 0 -19 C 8 -12 8 3 6 10 L -6 10 C -8 3 -8 -12 0 -19 Z', class: 'race-body' }),
+    svg('circle', { cx: 0, cy: -6, r: 3.2, class: 'race-window' }))
+  const ring = svg('circle', { r: 16, class: 'race-ring' })
+  const ball = svg('g', { class: 'race-ballg', style: `transform:translate(${AW / 2}px,${TOP}px)` }, ring, svg('g', { transform: 'scale(1.35)' }, tilt))
+  let lastMove = null
   const nowLine = svg('line', { x1: 0, x2: AW, y1: TOP, y2: TOP, class: 'race-now' })
   // where it lands if the price holds: a drop line from the ball to the floor, and a marker on it
   const drop = svg('line', { x1: AW / 2, x2: AW / 2, y1: TOP, y2: BOTTOM, class: 'race-drop' })
@@ -277,16 +284,16 @@ function raceCard(app) {
 
   const priceEl = el('b', { class: 'race-price' }, 'BNB')
   const moveEl = el('span', { class: 'race-move' }, 'reading the live price')
-  const status = el('p', { class: 'race-status' }, 'The ball drops in as soon as the live price arrives.')
+  const status = el('p', { class: 'race-status' }, 'The rocket comes in as soon as the live price arrives.')
   const ticks = el('div', { class: 'race-ticks', 'aria-hidden': 'true' })
   const card = el('div', { class: 'race' },
     el('div', { class: 'race-hud' },
       el('div', {}, priceEl, moveEl),
-      el('div', { class: 'race-clock' }, el('span', {}, 'lands in '), el('b', { 'data-countdown': '' }, '--:--:--'))),
+      el('div', { class: 'race-clock' }, el('span', {}, 'touchdown in '), el('b', { 'data-countdown': '' }, '--:--:--'))),
     el('div', { class: 'race-stage' },
       el('span', { class: 'race-y race-y--top' }, '00:00 UTC'),
       arena,
-      el('span', { class: 'race-y race-y--bottom' }, 'midnight: it lands'),
+      el('span', { class: 'race-y race-y--bottom' }, 'midnight: touchdown'),
       ticks),
     status)
 
@@ -301,6 +308,15 @@ function raceCard(app) {
     const last = r.points[r.points.length - 1]
     const bx = x(last.bps), by = yOf(Math.max(last.t, data.chainNow))
     ball.style.transform = `translate(${bx}px,${by}px)`
+    // tilt toward where BNB is heading; a jump of 5 bps or more since the last update fires the boost
+    const prev = r.points[r.points.length - 2] ?? last
+    tilt.style.transform = `rotate(${Math.max(-28, Math.min(28, (last.bps - prev.bps) * 0.8))}deg)`
+    if (lastMove !== null && Math.abs(r.moveBps - lastMove) >= 5) {
+      card.classList.remove('race--boost'); void card.offsetWidth; card.classList.add('race--boost')
+      setTimeout(() => card.classList.remove('race--boost'), 2600)
+    }
+    if (lastMove !== null && r.moveBps !== lastMove) { priceEl.classList.remove('flash'); void priceEl.offsetWidth; priceEl.classList.add('flash') }
+    lastMove = r.moveBps
     drop.setAttribute('x1', bx); drop.setAttribute('x2', bx); drop.setAttribute('y1', by)
     mark.style.transform = `translateX(${bx - AW / 2}px)`
     nowLine.setAttribute('y1', yOf(data.chainNow)); nowLine.setAttribute('y2', yOf(data.chainNow))
@@ -314,10 +330,10 @@ function raceCard(app) {
     })
     card.classList.toggle('race--in', v.zone === 'in' || (v.zone === null && v.typical === 'in'))
     card.classList.toggle('race--out', v.zone === 'high' || v.zone === 'low' || (v.zone === null && v.typical === 'out'))
-    status.textContent = v.zone === 'in' ? `In the zone. ${v.onTarget} of ${v.of} on target.`
-      : v.zone === 'high' ? `Above everyone's range. ${v.onTarget} of ${v.of} on target.`
-      : v.zone === 'low' ? `Below everyone's range. ${v.onTarget} of ${v.of} on target.`
-      : v.typical === 'in' ? "Inside a typical day. People's zone appears as forecasts open."
+    status.textContent = v.zone === 'in' ? `On course for the pad. ${v.onTarget} of ${v.of} on target.`
+      : v.zone === 'high' ? `Overshooting the pad, above everyone. ${v.onTarget} of ${v.of} on target.`
+      : v.zone === 'low' ? `Undershooting the pad, below everyone. ${v.onTarget} of ${v.of} on target.`
+      : v.typical === 'in' ? "Inside a typical day. The landing pad appears as forecasts open."
       : 'Outside a typical day. A big day for BNB.'
     card.classList.add('race--live')
   }
@@ -333,6 +349,34 @@ function raceCard(app) {
   }).catch(() => { status.textContent = 'The live price could not be read. Reload to try again.' })
   return card
 }
+
+/* ---------------------------------------------------------------- live activity ticker */
+// What just happened, newest first: seals, opens, wins and closes. Scrolls when there is enough of
+// it; still under prefers-reduced-motion (CSS). Shortened addresses only.
+function ticker(app) {
+  const { data } = app, h = data.history, items = []
+  for (const x of (data.seals ?? []).slice().sort((a, b) => b.at - a.at)) {
+    items.push(el('span', { class: 'ti' }, sealIcon(x.hash), `${shortAddr(x.voter)} sealed a forecast for ${dayLabel(x.day)}`))
+  }
+  for (const d of [data.today, data.today - 1]) for (const [a, v] of Object.entries(h.voters)) {
+    const f = v.forecasts?.[d]
+    if (f) items.push(el('span', { class: 'ti ti--open' }, `${shortAddr(a)} opened ${pct(f.p10, 1)} to ${pct(f.p90, 1)}`))
+  }
+  for (const d of [data.today - 1, data.today - 2]) for (const [a, v] of Object.entries(h.voters)) {
+    if (v.scores?.[d] && v.scores[d].loss < v.scores[d].baselineLoss) items.push(el('span', { class: 'ti ti--win' }, `${shortAddr(a)} beat a typical day on ${dayLabel(d)}`))
+  }
+  for (const x of Object.values(h.days).filter((x) => x.result).sort((a, b) => b.day - a.day).slice(0, 3)) {
+    const who = x.crowd ? (x.result.crowdLoss < x.result.baselineLoss ? ', people won' : ', a typical day won') : ''
+    items.push(el('span', { class: 'ti ti--close' }, `${dayLabel(x.day)} closed: BNB ${pct(x.result.changeBps)}${who}`))
+  }
+  if (!items.length) return null
+  const list = items.slice(0, 16)
+  const moving = list.length >= 4
+  const track = el('div', { class: `ticker-track ${moving ? 'ticker-track--move' : ''}`, style: `--ticker-s:${list.length * 5}s` },
+    ...list, ...(moving ? list.map((n) => { const c = n.cloneNode(true); c.setAttribute('aria-hidden', 'true'); return c }) : []))
+  return el('div', { class: 'ticker', role: 'status', 'aria-label': 'Latest activity' }, el('span', { class: 'ticker-live' }, 'LIVE'), el('div', { class: 'ticker-win' }, track))
+}
+const CROWN = () => svg('svg', { viewBox: '0 0 24 14', class: 'crown', 'aria-label': 'Top forecaster' }, svg('path', { d: 'M2 13 L3.5 4 L8.5 8.5 L12 1.5 L15.5 8.5 L20.5 4 L22 13 Z' }))
 
 /* ---------------------------------------------------------------- today */
 export function dashboard(app) {
@@ -366,11 +410,12 @@ export function dashboard(app) {
       link('#/history', 'Every day', 'arrow')),
     top.length > 0 && frame('card',
       el('h2', { class: 'card-title' }, 'Best forecasters'),
-      el('ol', { class: 'mini-board' }, ...top.map((r) => el('li', {}, link(`#/f/${r.full}`, r.address, 'mono')))),
+      el('ol', { class: 'mini-board' }, ...top.map((r, i) => el('li', {}, link(`#/f/${r.full}`, r.address, 'mono'), i === 0 ? CROWN() : null))),
       link('#/leaderboard', 'Leaderboard', 'arrow')),
   ].filter(Boolean)
 
   return el('section', { class: 'view' },
+    ticker(app),
     el('header', { class: 'td-intro' },
       el('h1', { class: 'f-h2' }, 'Real people forecast BNB. Kodo keeps score.'),
       el('p', {}, 'One Binance Agent ID, one vote. No bots.'),
@@ -465,7 +510,7 @@ export function leaderboardView(app) {
     count.textContent = `${rows.filter((r) => r.ranked).length} ranked, ${rows.filter((r) => !r.ranked).length} not ranked yet (under ${MIN_SCORED_DAYS} scored days)` +
       (waiting ? `, ${waiting} with forecasts locked and none scored yet.` : '.')
     body.replaceChildren(...rows.map((r, i) => el('tr', { class: r.ranked ? '' : 'unranked' },
-      el('td', {}, r.ranked ? String(i + 1) : '-'),
+      el('td', {}, r.ranked ? (i === 0 ? el('span', { class: 'rank-1' }, CROWN(), '1') : String(i + 1)) : '-'),
       el('td', {}, link(`#/f/${r.full}`, r.address, 'mono')),
       el('td', { class: r.skillBps >= 0 ? 'up' : 'down' }, signed(r.skillBps)),
       el('td', {}, `${Math.round(r.calibration * 100)}%`),
