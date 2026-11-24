@@ -4,7 +4,7 @@
 //   fork     deployments/fork.json, a local anvil fork of BSC mainnet
 //   testnet  deployments/testnet.json (T-A03)
 //   mainnet  deployments/mainnet.json (T-A05)
-const DEFAULT_NETWORK = 'sample'
+const DEFAULT_NETWORK = 'mainnet'
 
 const RPC = {
   testnet: 'https://bsc-testnet-rpc.publicnode.com',
@@ -18,12 +18,14 @@ export function siteConfig() {
   const network = ['fork', 'testnet', 'mainnet', 'sample'].includes(mode) ? mode : DEFAULT_NETWORK
   if (network === 'sample') return { network }
   const dep = files[`../../deployments/${network}.json`]
-  if (!dep?.address) {
+  const address = dep?.address ?? dep?.PulseForecast // the deploy script and keeper write PulseForecast and block
+  const deployBlock = dep?.deployBlock ?? dep?.block
+  if (!address) {
     throw new Error(`No deployments/${network}.json with an address. ` +
       (network === 'fork' ? 'Run the fork first: node fork/run.mjs.' : 'The contract is not deployed on this network yet.'))
   }
-  if (!Number.isSafeInteger(dep.deployBlock) || dep.deployBlock <= 0) {
+  if (!Number.isSafeInteger(deployBlock) || deployBlock <= 0) {
     throw new Error(`deployments/${network}.json has no deployBlock. Add the contract's deploy block number so the site does not scan the chain from genesis.`)
   }
-  return { network, address: dep.address, deployBlock: dep.deployBlock, rpc: dep.rpc ?? RPC[network] }
+  return { network, address, deployBlock, rpc: dep.rpc ?? RPC[network] }
 }
