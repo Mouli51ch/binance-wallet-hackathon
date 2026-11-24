@@ -374,7 +374,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <Actions run links, settle tx hashes>
 
 ### T-B03, Website live on Vercel against mainnet
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/31 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/32 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
 - Suggested: Mouli
 - Depends-on: T-B02, T-A05, OP-7
 - Touches: web/, vercel.json
