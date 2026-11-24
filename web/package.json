@@ -6,6 +6,7 @@
   "description": "Read-only Kodo website. Vite + viem, no wallet connect.",
   "scripts": {
     "dev": "vite",
+    "dev:fork": "vite --mode fork",
     "build": "node --test test/*.test.js && vite build",
     "preview": "vite preview",
     "test": "node --test test/*.test.js"
