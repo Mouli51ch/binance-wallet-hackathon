@@ -299,13 +299,13 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 ; Finding: events alone rebuild every day and record, but give a baseline only for settled days (today's comes from baselineBand); on the fork the crowd beat the baseline on 4 of 5 settled days, inside its band 80% of the time
 
 ### T-C01, Agent skill and pulse.mjs
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-c01-agent-skill
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 | Owner: Mouli | Branch: feature/t-c01-agent-skill
 - Suggested: Mouli
 - Depends-on: T-F02, T-A01
 - Touches: skills/human-pulse/
 - Serves: Agent ID depth (judged) ; Innovation (judged)
 - Acceptance: `SKILL.md` follows the 5-step flow in `docs/ARCHITECTURE.md` section 6 and never confirms for the user; `pulse.mjs prepare` writes a salt to a local state file, builds the `submit` calldata whose commit hash matches the contract's in 1 shared test vector; `pulse.mjs status` prints 1 line; tested against the testnet deploy with 1 sent transaction
-- Evidence: <PR link, testnet tx hash>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 ; commit hash matches the deployed mainnet contract on 2 vectors; mainnet-fork end to end against the deployed bytecode (no testnet key here, so no testnet tx) ; Finding: commit costs 77,451 gas and reveal plus commit 135,242; a commit confirmed after 00:00 UTC is filed for the wrong day and can never be revealed, so prepare prints sendBefore and refuses in the last 10 minutes
 
 ### T-F03, Developer Mode can call a custom contract on mainnet
 - Status: open
