@@ -70,14 +70,24 @@ function copyRow(label, text) {
   } }, 'Copy')
   return { code, node: el('div', { class: 'join-row' }, el('span', { class: 'join-n' }, label), el('div', { class: 'prompt' }, code, btn)) }
 }
+/** Forecasters (Agent ID holders): add the skill, then send the forecast prompt. */
 function joinBlock(text) {
   const install = copyRow('1. Add the skill', INSTALL_PROMPT)
   const go = copyRow('2. Forecast', text)
   return { code: go.code, node: frame('card join-card',
     el('h2', { class: 'card-title' }, 'Paste these into your AI agent'),
     install.node, go.node,
-    el('p', { class: 'join-foot' }, 'Use an agent that runs commands on your computer, like Claude Code. Phone chat apps cannot send it. ',
-      el('a', { href: SKILL_URL, rel: 'noopener' }, 'See the skill')), ) }
+    el('p', { class: 'join-foot' }, 'Needs a Binance Agent ID and an agent that runs commands on your computer, like Claude Code. ',
+      el('a', { href: SKILL_URL, rel: 'noopener' }, 'See the skill'))) }
+}
+/** Everyone else: add the skill, then ask what the crowd expects. No wallet needed. */
+function askBlock() {
+  const install = copyRow('1. Add the skill', INSTALL_PROMPT)
+  const ask = copyRow('2. Ask', 'What does the Kodo crowd expect for BNB today?')
+  return frame('card join-card',
+    el('h2', { class: 'card-title' }, 'Ask your AI agent'),
+    install.node, ask.node,
+    el('p', { class: 'join-foot' }, 'No wallet needed. Have a Binance Agent ID? ', link('#/forecast', 'Make your own forecast', 'arrow')))
 }
 
 const STAGE = { locked: 'Sealed', revealed: 'Opened', scored: 'Scored', missed: 'Never opened' }
@@ -279,7 +289,7 @@ export function dashboard(app) {
     youCard(app),
     guessCard(app),
     lifecycle(app),
-    joinBlock('Make my daily BNB forecast with the Kodo skill.').node,
+    askBlock(),
     side.length === 2 ? el('div', { class: 'cols2' }, ...side) : side[0] ?? null,
   )
 }
