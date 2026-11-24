@@ -20,7 +20,7 @@ export const PULSE_ABI = parseAbi([
 ])
 const EVENTS = PULSE_ABI.filter((x) => x.type === 'event')
 const LOG_SPAN = 5000n // public RPCs cap eth_getLogs ranges
-const LOG_PARALLEL = 6
+const LOG_PARALLEL = 32 // spans read at once; publicnode answered 40 in parallel in about 3 s
 const LOOKBACK_DAYS = 14n
 
 const STATUS = ['pending', 'settled', 'void']
@@ -88,20 +88,76 @@ export function toHistory(events, sigmaByDay = {}) {
   return { days, voters }
 }
 
-async function scanEvents(client, cfg) {
-  const head = await client.getBlock()
-  const back = await client.getBlock({ blockNumber: head.number > 1000n ? head.number - 1000n : 0n })
-  const perDay = head.timestamp > back.timestamp ? (86400n * (head.number - back.number)) / (head.timestamp - back.timestamp) : 0n
-  const windowStart = head.number - perDay * LOOKBACK_DAYS
-  let from = BigInt(cfg.deployBlock) > windowStart ? BigInt(cfg.deployBlock) : windowStart
+/* ---------------------------------------------------------------- event history, cached */
+// Reading event history is the slow part on a public RPC (about 2 s per 5,000 blocks, and BSC
+// makes about 115,000 blocks a day). So the history is read once and kept: in this browser
+// (localStorage), and in a snapshot file written before each deploy (web/public/snapshot.json,
+// `npm run snapshot`). A visit then reads only the blocks after the newest copy it has.
+
+/** Pure: logs to a string for storage; bigints survive as "123n". */
+export const packLogs = (logs) => JSON.stringify(logs.map((l) => ({ e: l.eventName, a: l.args, b: l.blockNumber, i: l.logIndex })),
+  (k, v) => (typeof v === 'bigint' ? `${v}n` : v))
+/** Pure: the reverse of packLogs. */
+export const unpackLogs = (text) => JSON.parse(text, (k, v) => (typeof v === 'string' && /^-?\d+n$/.test(v) ? BigInt(v.slice(0, -1)) : v))
+  .map((x) => ({ eventName: x.e, args: x.a, blockNumber: x.b, logIndex: x.i }))
+/** Pure: several sets of logs as one, each log once, in chain order, from block `from` on. */
+export function mergeLogs(sets, from) {
+  const m = new Map()
+  for (const set of sets) for (const l of set) if (BigInt(l.blockNumber) >= from) m.set(`${l.blockNumber}:${l.logIndex}`, l)
+  return [...m.values()].sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1))
+}
+
+const REORG = 30n // re-read the last few blocks of any stored copy, in case they changed
+const cacheKey = (cfg) => `kodo:logs:${cfg.network}:${String(cfg.address).toLowerCase()}`
+// a fork is a fresh chain on every run at the same address, so its history is never stored
+function readStored(cfg) {
+  if (cfg.network === 'fork') return null
+  try {
+    const c = JSON.parse(localStorage.getItem(cacheKey(cfg)))
+    return c?.v === 1 ? { from: BigInt(c.from), to: BigInt(c.to), logs: unpackLogs(c.logs) } : null
+  } catch { return null }
+}
+function writeStored(cfg, from, to, logs) {
+  if (cfg.network === 'fork') return
+  try { localStorage.setItem(cacheKey(cfg), JSON.stringify({ v: 1, from: String(from), to: String(to), logs: packLogs(logs) })) } catch {}
+}
+async function readSnapshot(cfg) {
+  if (cfg.network !== 'mainnet' || typeof fetch !== 'function' || typeof location === 'undefined') return null
+  try {
+    const r = await fetch(new URL('snapshot.json', location.href), { cache: 'no-cache' })
+    if (!r.ok) return null
+    const s = await r.json()
+    if (String(s.address).toLowerCase() !== String(cfg.address).toLowerCase()) return null
+    return { from: BigInt(s.from), to: BigInt(s.to), logs: unpackLogs(s.logs) }
+  } catch { return null }
+}
+
+/** Reads logs from `from` to `to` in LOG_SPAN chunks, LOG_PARALLEL at a time. */
+export async function readLogs(client, address, from, to) {
   const spans = []
-  for (; from <= head.number; from += LOG_SPAN) spans.push([from, from + LOG_SPAN - 1n < head.number ? from + LOG_SPAN - 1n : head.number])
+  for (let f = from; f <= to; f += LOG_SPAN) spans.push([f, f + LOG_SPAN - 1n < to ? f + LOG_SPAN - 1n : to])
   const logs = []
   for (let i = 0; i < spans.length; i += LOG_PARALLEL) {
-    const batch = await Promise.all(spans.slice(i, i + LOG_PARALLEL).map(([f, t]) =>
-      client.getLogs({ address: cfg.address, events: EVENTS, fromBlock: f, toBlock: t })))
+    const batch = await Promise.all(spans.slice(i, i + LOG_PARALLEL).map(([f, t]) => client.getLogs({ address, events: EVENTS, fromBlock: f, toBlock: t })))
     logs.push(...batch.flat())
   }
+  return logs
+}
+
+async function scanEvents(client, cfg) {
+  const snap = readSnapshot(cfg) // in parallel with the block reads below
+  const [head, number] = await Promise.all([client.getBlock(), client.getBlockNumber()])
+  const back = await client.getBlock({ blockNumber: number > 1000n ? number - 1000n : 0n })
+  const perDay = head.timestamp > back.timestamp ? (86400n * (head.number - back.number)) / (head.timestamp - back.timestamp) : 0n
+  const windowStart = head.number - perDay * LOOKBACK_DAYS
+  const from = BigInt(cfg.deployBlock) > windowStart ? BigInt(cfg.deployBlock) : windowStart
+  // the newest stored copy that reaches back to the window's start
+  const copies = [readStored(cfg), await snap].filter((c) => c && c.from <= from && c.to <= head.number)
+  const best = copies.sort((a, b) => (a.to > b.to ? -1 : 1))[0]
+  const start = best && best.to - REORG > from ? best.to - REORG : from
+  const fresh = await readLogs(client, cfg.address, start, head.number)
+  const logs = mergeLogs([...(best ? [best.logs.filter((l) => l.blockNumber < start)] : []), fresh], from)
+  writeStored(cfg, from, head.number, logs)
   return { logs, head }
 }
 
@@ -120,26 +176,27 @@ export async function loadChain(cfg, { history = false } = {}) {
 
   // The contract's day, not the browser's: on a fork the chain can be days ahead.
   const [today, startDay] = (await Promise.all([read('today'), read('startDay')])).map(Number)
-  const days = {}
-  await Promise.all([today - 1, today, today + 1].map(async (d) => {
-    const [info, crowd, baseline] = await Promise.all([read('dayInfo', [BigInt(d)]), read('crowdBand', [BigInt(d)]), read('baselineBand', [BigInt(d)])])
-    days[d] = toDay(info, crowd, baseline, committedFor(d))
-  }))
-  const holders = await Promise.all(voters.map(async (v) => toHolder(v, await read('stats', [v]))))
-  // the seals: every commit for today and tomorrow with its on-chain hash and the time it landed.
-  // The hash proves the forecast exists and cannot change; the numbers stay unreadable until revealed.
+  const settled = history ? [...new Set(events.filter((e) => e.eventName === 'Settled').map((e) => Number(e.args.day)))] : []
   const recent = logs.filter((l) => [today, today + 1].includes(Number(l.args.day))).slice(-60)
-  const at = {}
-  await Promise.all([...new Set(recent.map((l) => l.blockNumber))].map(async (b) => { at[b] = Number((await client.getBlock({ blockNumber: b })).timestamp) }))
-  const seals = await Promise.all(recent.map(async (l) => ({
-    voter: l.args.voter, day: Number(l.args.day), at: at[l.blockNumber],
-    hash: (await read('forecastOf', [l.args.voter, l.args.day])).hash })))
+  const at = {}, sigmaByDay = {}
+  // everything below depends only on the logs and today, so it is read in one parallel step
+  const days = {}
+  const [holders, hashes] = await Promise.all([
+    Promise.all(voters.map(async (v) => toHolder(v, await read('stats', [v])))),
+    // the seals: every commit for today and tomorrow with its on-chain hash and the time it landed.
+    // The hash proves the forecast exists and cannot change; the numbers stay unreadable until revealed.
+    Promise.all(recent.map((l) => read('forecastOf', [l.args.voter, l.args.day]).then((f) => f.hash))),
+    Promise.all([today - 1, today, today + 1].map(async (d) => {
+      const [info, crowd, baseline] = await Promise.all([read('dayInfo', [BigInt(d)]), read('crowdBand', [BigInt(d)]), read('baselineBand', [BigInt(d)])])
+      days[d] = toDay(info, crowd, baseline, committedFor(d))
+    })),
+    Promise.all([...new Set(recent.map((l) => l.blockNumber))].map(async (b) => { at[b] = Number((await client.getBlock({ blockNumber: b })).timestamp) })),
+    // each settled day's own sigma gives its baseline band
+    Promise.all(settled.map(async (d) => { sigmaByDay[d] = Number((await read('dayInfo', [BigInt(d)])).sigmaBps) })),
+  ])
+  const seals = recent.map((l, k) => ({ voter: l.args.voter, day: Number(l.args.day), at: at[l.blockNumber], hash: hashes[k] }))
   // chainNow is the chain's clock: on a fork it runs days ahead of the browser's
   const out = { sample: false, network: cfg.network, contract: cfg.address, today, startDay, chainNow: Number(head.timestamp), days, holders, seals }
   if (!history) return out
-  // each settled day's own sigma gives its baseline band
-  const settled = [...new Set(events.filter((e) => e.eventName === 'Settled').map((e) => Number(e.args.day)))]
-  const sigmaByDay = {}
-  await Promise.all(settled.map(async (d) => { sigmaByDay[d] = Number((await read('dayInfo', [BigInt(d)])).sigmaBps) }))
   return { ...out, history: toHistory(events, sigmaByDay) }
 }

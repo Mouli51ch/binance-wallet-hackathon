@@ -1,0 +1,2 @@
+# T-B03: event history snapshot, written by npm run snapshot before each deploy
+public/snapshot.json
