@@ -266,10 +266,11 @@ Tick in a `board/` PR as items land.
 - Status: blocked, see OP-4 | Owner: Jishnu | Branch: feature/t-a03-deploy
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
-- Touches: contracts/script/, deployments/testnet.json
+- Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
 - Serves: Completion (judged) ; unblocks T-B02
 - Acceptance: `forge script` deploys to BSC testnet (chain 97) with a mock Agent ID and a testnet price feed, then verifies on testnet BscScan; the address and block are in `deployments/testnet.json`; 1 full day cycle (commit, reveal, settle, score) run on testnet
 - Evidence: <testnet BscScan links>
+- Finding: a fresh clone has no deployments/ folder (git keeps no empty folders) and Foundry will not create it, so the first real deploy stopped before broadcasting with "not allowed to be accessed for write operations". deployments/.gitkeep fixes it. Found on a local mainnet fork run (deploy script, real Agent ID holder, keeper over two midnights): every number matched a hand calculation.
 
 ### T-A04, Keeper script
 - Status: open
