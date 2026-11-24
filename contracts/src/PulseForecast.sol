@@ -346,7 +346,9 @@ contract PulseForecast {
             inBand = f.p10 <= d.changeBps && d.changeBps <= f.p90;
             if (inBand) st.daysInBand += 1;
         } else {
-            loss = 2 * base; // withholding a bad forecast is always worse than revealing it
+            // Not revealing costs 2x the baseline. A holder can still skip a reveal that would cost
+            // more, so missed reveals are counted and shown next to every record (DECISIONS.md).
+            loss = 2 * base;
             st.missedReveals += 1;
         }
         st.daysScored += 1;
