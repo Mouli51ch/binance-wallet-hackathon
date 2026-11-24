@@ -223,13 +223,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, forge test output summary>
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: docs/agentic-wallet.md
 - Serves: unblocks T-C01 ; Agent ID depth (judged)
 - Acceptance: from the official skill (github.com/binance/binance-skills-hub, binance-agentic-wallet) and the Developer Mode docs, `docs/agentic-wallet.md` lists the exact commands for: check Developer Mode, build a custom contract call, preview, execute with the preview's requestId, read the wallet address; plus the daily limit, the expiry, and whether testnet is supported; every claim has its source link; at least 5 commands documented
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3 ; Finding: 12 commands documented; custom contract calls are supported (kill criterion not hit); Developer Mode lasts 7 days, extended by each use; no testnet documented (7 mainnets listed); requireConfirmation false means no Binance App tap
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
@@ -289,8 +289,17 @@ Tick in a `board/` PR as items land.
 - Acceptance: 1 command starts anvil on a BSC mainnet fork, deploys PulseForecast from T-A01 against the real Agent ID contract, has 5 real Agent ID holder addresses (impersonated on the fork only) commit, reveal and get scored over 2 settled days, and 1 fresh address refused; settles against a replay of real Chainlink BNB/USD rounds, because a fork receives no new rounds; writes deployments/fork.json; the website shows the fork data
 - Evidence: <PR link, run log>
 
+### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b04-app
+- Suggested: Mouli
+- Depends-on: T-B02
+- Touches: web/
+- Serves: Practicality (judged) ; Completion (judged)
+- Acceptance: a read-only app at app.html with 5 views reachable from the landing page: dashboard (today's crowd band against the baseline band, countdown to 00:00 UTC, commits for tomorrow), history (every settled day: BNB move, crowd band, baseline band, both losses), leaderboard (sortable, address search, 5 scored days to rank), forecaster page per address (skill, in-band %, streak, missed reveals, each day's band against the outcome), make a forecast (low, middle and high sliders, how that band would have scored on past settled days, the exact prompt for the agent); 0 wallet-connect code; 0 `name.ai` names; works at 375 px; every view with forecasts carries "Forecasting signal only. Not financial advice."; tested on the T-A07 fork
+- Evidence: <PR link, fork screenshots>
+
 ### T-C01, Agent skill and pulse.mjs
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-c01-agent-skill
 - Suggested: Mouli
 - Depends-on: T-F02, T-A01
 - Touches: skills/human-pulse/
