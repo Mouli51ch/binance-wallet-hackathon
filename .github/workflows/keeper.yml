@@ -1,0 +1,54 @@
+name: keeper
+
+# Settles yesterday against Chainlink and scores holders, daily at 00:05 UTC. Anyone can do the same
+# by hand: `node keeper/settle.mjs`. Uses a hot wallet that holds only gas money (OP-5, OP-6).
+
+on:
+  schedule:
+    - cron: '5 0 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Read only, send no transactions
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deployed yet?
+        id: deployed
+        run: |
+          if [ -f deployments/mainnet.json ]; then echo "yes=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::deployments/mainnet.json does not exist yet (T-A05), so there is nothing to settle."; fi
+
+      - uses: actions/setup-node@v4
+        if: steps.deployed.outputs.yes == 'true'
+        with:
+          node-version: 22
+
+      - name: Install
+        if: steps.deployed.outputs.yes == 'true'
+        working-directory: keeper
+        run: npm ci --no-audit --no-fund
+
+      - name: Settle and score
+        if: steps.deployed.outputs.yes == 'true'
+        env:
+          NETWORK: mainnet
+          # A public RPC that serves logs works; a keyed one stays in the secret.
+          RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://bsc-rpc.publicnode.com' }}
+          KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY" = "true" ]; then node keeper/settle.mjs --dry-run; else node keeper/settle.mjs; fi
