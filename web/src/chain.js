@@ -7,6 +7,7 @@ import { createPublicClient, http, parseAbi } from 'viem'
 
 export const PULSE_ABI = parseAbi([
   'function today() view returns (uint64)',
+  'function startDay() view returns (uint64)',
   'function dayInfo(uint64 day) view returns ((uint8 status, int32 changeBps, uint32 sigmaBps, uint32 reveals, int256 openPrice, int256 closePrice, uint256 crowdLoss, uint256 baselineLoss))',
   'function crowdBand(uint64 day) view returns (int32 p10, int32 p50, int32 p90, uint32 n)',
   'function baselineBand(uint64 day) view returns (int32 p10, int32 p50, int32 p90)',
@@ -46,6 +47,7 @@ export function toDay(info, crowd, baseline, committed) {
 export function toHolder(address, s) {
   return {
     address,
+    daysCommitted: Number(s.daysCommitted),
     daysScored: Number(s.daysScored),
     totalLoss: tenths(s.totalLoss),
     totalBaselineLoss: tenths(s.totalBaselineLoss),
@@ -116,7 +118,7 @@ export async function loadChain(cfg, { history = false } = {}) {
   const committedFor = (d) => logs.filter((l) => Number(l.args.day) === d).length
 
   // The contract's day, not the browser's: on a fork the chain can be days ahead.
-  const today = Number(await read('today'))
+  const [today, startDay] = (await Promise.all([read('today'), read('startDay')])).map(Number)
   const days = {}
   await Promise.all([today - 1, today, today + 1].map(async (d) => {
     const [info, crowd, baseline] = await Promise.all([read('dayInfo', [BigInt(d)]), read('crowdBand', [BigInt(d)]), read('baselineBand', [BigInt(d)])])
@@ -124,7 +126,7 @@ export async function loadChain(cfg, { history = false } = {}) {
   }))
   const holders = await Promise.all(voters.map(async (v) => toHolder(v, await read('stats', [v]))))
   // chainNow is the chain's clock: on a fork it runs days ahead of the browser's
-  const out = { sample: false, network: cfg.network, contract: cfg.address, today, chainNow: Number(head.timestamp), days, holders }
+  const out = { sample: false, network: cfg.network, contract: cfg.address, today, startDay, chainNow: Number(head.timestamp), days, holders }
   if (!history) return out
   // each settled day's own sigma gives its baseline band
   const settled = [...new Set(events.filter((e) => e.eventName === 'Settled').map((e) => Number(e.args.day)))]

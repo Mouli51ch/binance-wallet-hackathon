@@ -68,7 +68,9 @@ export function dashboard(app) {
             el('p', { class: 'big-num' }, `BNB ${pct(y.result.changeBps)}`),
             el('p', { class: 'verdict' }, y.result.crowdLoss < y.result.baselineLoss ? 'The crowd beat the baseline.' : 'The baseline beat the crowd.'),
             el('p', { class: 'note' }, `Crowd loss ${y.result.crowdLoss.toFixed(1)} bps against the baseline's ${y.result.baselineLoss.toFixed(1)}. Lower is better.`))
-          : el('p', { class: 'note' }, 'Not settled yet. Anyone can settle it with the Chainlink round from 00:00 UTC.'),
+          : data.today - 1 < data.startDay
+            ? el('p', { class: 'note' }, `Before the contract's first day, ${dayLabel(data.startDay)}. Nothing to settle.`)
+            : el('p', { class: 'note' }, 'Not settled yet. Anyone can settle it with the Chainlink round from 00:00 UTC.'),
         link('#/history', 'See every day', 'arrow')),
       frame('card',
         el('h2', { class: 'card-title' }, 'Top forecasters'),
@@ -144,6 +146,7 @@ const SORTS = {
 export function leaderboardView(app) {
   let sort = 'skill', q = ''
   const all = rankRows(app)
+  const waiting = app.data.holders.filter((h) => h.daysCommitted > 0 && !(h.daysScored > 0)).length
   const body = el('tbody')
   const count = el('p', { class: 'note' })
   const draw = () => {
@@ -151,7 +154,8 @@ export function leaderboardView(app) {
     const [pre, suf] = q.toLowerCase().split(/…|\.\.\./)
     const match = (a) => (suf === undefined ? a.includes(pre) : a.startsWith(pre) && a.endsWith(suf))
     const rows = all.filter((r) => match(r.full.toLowerCase())).sort((a, b) => (b.ranked - a.ranked) || SORTS[sort](a, b))
-    count.textContent = `${rows.filter((r) => r.ranked).length} ranked, ${rows.filter((r) => !r.ranked).length} not ranked yet (under ${MIN_SCORED_DAYS} scored days).`
+    count.textContent = `${rows.filter((r) => r.ranked).length} ranked, ${rows.filter((r) => !r.ranked).length} not ranked yet (under ${MIN_SCORED_DAYS} scored days)` +
+      (waiting ? `, ${waiting} with forecasts locked and none scored yet.` : '.')
     body.replaceChildren(...rows.map((r, i) => el('tr', { class: r.ranked ? '' : 'unranked' },
       el('td', {}, r.ranked ? String(i + 1) : '-'),
       el('td', {}, link(`#/f/${r.full}`, r.address, 'mono')),
@@ -191,7 +195,12 @@ export function forecaster(app, raw) {
   const row = rankRows(app).find((r) => r.full === addr)
   const v = app.data.history.voters[Object.keys(app.data.history.voters).find((a) => a.toLowerCase() === addr.toLowerCase())]
   if (!row || !v) {
-    return el('section', { class: 'view' }, head(shortAddr(addr), 'No forecasts from this address in the last 14 days. Records appear after its first commit.', app.pill), link('#/leaderboard', 'Open the leaderboard', 'btn'))
+    // committed but nothing scored yet (every forecaster on day one): say so, not "no forecasts"
+    const h = app.data.holders.find((x) => x.address.toLowerCase() === addr.toLowerCase())
+    const msg = h?.daysCommitted > 0
+      ? `${h.daysCommitted} ${h.daysCommitted === 1 ? 'forecast' : 'forecasts'} locked, none scored yet. A forecast is scored once it is revealed and its day settles at 00:00 UTC.`
+      : 'No forecasts from this address in the last 14 days. Records appear after its first commit.'
+    return el('section', { class: 'view' }, head(shortAddr(addr), msg, app.pill), link('#/leaderboard', 'Open the leaderboard', 'btn'))
   }
   const rank = rankRows(app).filter((r) => r.ranked).sort(SORTS.skill).findIndex((r) => r.full === addr)
   const days = settledDays(app.data.history).filter((d) => v.forecasts[d.day] || v.scores[d.day])

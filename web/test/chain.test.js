@@ -18,7 +18,7 @@ test('chain reads map to the page shape, losses from tenths of a bps to bps', ()
   const h = toHolder('0x0000000000000000000000000000000000000001', {
     daysCommitted: 6, daysScored: 5, missedReveals: 1, daysInBand: 4, beatStreak: 2, lastScoredDay: 9n, totalLoss: 7000n, totalBaselineLoss: 8200n,
   })
-  assert.deepEqual(h, { address: '0x0000000000000000000000000000000000000001', daysScored: 5, totalLoss: 700, totalBaselineLoss: 820, daysInBand: 4, missedReveals: 1, streak: 2 })
+  assert.deepEqual(h, { address: '0x0000000000000000000000000000000000000001', daysCommitted: 6, daysScored: 5, totalLoss: 700, totalBaselineLoss: 820, daysInBand: 4, missedReveals: 1, streak: 2 })
 })
 
 test('events become per-day and per-voter history', async () => {
