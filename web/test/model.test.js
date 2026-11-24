@@ -57,3 +57,21 @@ test('forecastRows gives each forecast its stage, newest day first', async () =>
   assert.equal(rows[2].change, -46)
   assert.equal(rows[2].beat, true)
 })
+
+// "You" on Today: one forecaster's yesterday, today and tomorrow, whatever case the address is in.
+test('myDays picks one forecaster out of the history', async () => {
+  const { myDays } = await import('../src/model.js')
+  const A = '0x00000000000000000000000000000000000000a1'
+  const history = {
+    days: { 9: { day: 9, result: { changeBps: 30 } }, 10: { day: 10 }, 11: { day: 11 } },
+    voters: {
+      [A]: { committed: { 9: true, 10: true, 11: true }, forecasts: { 9: { p10: -50, p50: 0, p90: 80 } }, scores: { 9: { loss: 10, baselineLoss: 20, inBand: true } } },
+      '0x00000000000000000000000000000000000000b2': { committed: { 10: true }, forecasts: {}, scores: {} },
+    },
+  }
+  const me = myDays(history, 10, A.toUpperCase().replace('0X', '0x'))
+  assert.equal(me.yesterday.stage, 'scored')
+  assert.equal(me.today.stage, 'locked') // committed for today, not opened yet: the warning case
+  assert.equal(me.tomorrow.stage, 'locked')
+  assert.equal(myDays(history, 10, '0x00000000000000000000000000000000000000c3').today, null)
+})

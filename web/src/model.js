@@ -166,3 +166,10 @@ export function guessRecord(guesses, days) {
   }
   return { right, scored, pending, streak }
 }
+
+/** One forecaster's yesterday, today and tomorrow (each a forecastRows row, or null). */
+export function myDays(history, today, address) {
+  const mine = forecastRows(history, today).filter((r) => r.voter.toLowerCase() === String(address).toLowerCase())
+  const on = (d) => mine.find((r) => r.day === d) ?? null
+  return { yesterday: on(today - 1), today: on(today), tomorrow: on(today + 1) }
+}

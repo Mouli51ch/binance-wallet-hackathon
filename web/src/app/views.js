@@ -1,7 +1,7 @@
 // The five app views. Each returns one DOM node built with textContent, never innerHTML:
 // chain data is data, not markup. Read-only: nothing here connects a wallet or signs.
-import { getAddress } from 'viem'
-import { backtest, dayLabel, forecastRows, guessRecord, leanOf, leaderboard, MIN_SCORED_DAYS, pct, sealGlyph, shortAddr, validBand } from '../model.js'
+import { getAddress, isAddress } from 'viem'
+import { backtest, dayLabel, forecastRows, guessRecord, leanOf, leaderboard, MIN_SCORED_DAYS, myDays, pct, sealGlyph, shortAddr, validBand } from '../model.js'
 import { bandStrip, dayColumns, domainFor, svg } from './charts.js'
 import { bnbPrice, usdAt } from '../price.js'
 
@@ -102,6 +102,57 @@ function forecastTable(rows, today, { voter = true } = {}) {
       el('td', { class: r.band ? 'mono' : 'muted' }, numbers(r)),
       el('td', { class: r.change == null ? 'muted' : r.change >= 0 ? 'up' : 'down' }, r.change != null ? pct(r.change) : r.day > today ? 'Not started' : r.day === today ? 'Day not over' : 'Not settled yet'),
       el('td', { class: r.score ? (r.beat ? 'up' : 'down') : 'muted' }, result(r)))))))
+}
+
+/* ---------------------------------------------------------------- me: your own address, in this browser only */
+const ME_KEY = 'kodo:me'
+export function getMe() {
+  try { const a = localStorage.getItem(ME_KEY); return a && isAddress(a, { strict: false }) ? getAddress(a.toLowerCase()) : null } catch { return null }
+}
+function setMe(a) {
+  try { if (a) localStorage.setItem(ME_KEY, a); else localStorage.removeItem(ME_KEY) } catch {}
+  dispatchEvent(new HashChangeEvent('hashchange')) // redraw the view with the new "me"
+}
+/** "This is me" on a forecaster's record; "Forget me" once saved. */
+function meButton(addr) {
+  const mine = getMe() === addr
+  return el('button', { type: 'button', class: `me-btn ${mine ? 'me-btn--on' : ''}`, onclick: () => setMe(mine ? null : addr) },
+    mine ? 'This is you. Forget' : 'This is me')
+}
+/** What is yours today: tomorrow's seal, today's open, yesterday's score. */
+function youCard(app) {
+  const me = getMe()
+  if (!me) return null
+  const { data } = app
+  const m = myDays(data.history, data.today, me)
+  const lines = []
+  if (m.today?.stage === 'locked') {
+    lines.push(el('p', { class: 'you-warn' }, "Open today's forecast: send your daily message again. ", el('b', { 'data-countdown': '' }, '--:--:--'), ' left.'))
+  } else if (m.today?.band) {
+    lines.push(el('p', {}, `Today: opened, ${pct(m.today.band.p10, 1)} to ${pct(m.today.band.p90, 1)}.`))
+  }
+  lines.push(m.tomorrow
+    ? el('p', {}, `${dayLabel(data.today + 1)}: sealed.`)
+    : el('p', {}, `Nothing sealed for ${dayLabel(data.today + 1)} yet. `, link('#/forecast', 'Make it', 'arrow')))
+  if (m.yesterday?.score) lines.push(el('p', { class: m.yesterday.beat ? 'up' : 'down' }, `Yesterday: ${m.yesterday.beat ? 'you beat a typical day' : 'a typical day did better'}.`))
+  return frame('card you', el('h2', { class: 'card-title' }, 'You, ', link('#/me', shortAddr(me), 'mono')), ...lines)
+}
+/** #/me: your record, or a box to save your address. */
+export function meView(app) {
+  const me = getMe()
+  if (me) return forecaster(app, me)
+  const input = el('input', { type: 'text', placeholder: 'Your wallet address, 0x...', autocomplete: 'off', spellcheck: 'false' })
+  const msg = el('p', { class: 'note' })
+  const save = () => {
+    const v = input.value.trim()
+    if (!isAddress(v, { strict: false })) { msg.textContent = 'That is not a wallet address. Copy it from your Binance Agentic Wallet.'; return }
+    setMe(getAddress(v.toLowerCase()))
+  }
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') save() })
+  return el('section', { class: 'view' },
+    head('Me', 'Paste your wallet address to follow your forecasts. Saved in this browser only.', app.pill),
+    frame('card', el('label', { class: 'search' }, el('span', {}, 'Your address'), input),
+      el('button', { type: 'button', class: 'btn me-save', onclick: save }, 'Follow my forecasts'), msg))
 }
 
 /* ---------------------------------------------------------------- seals and the guess game */
@@ -223,7 +274,9 @@ export function dashboard(app) {
       nextWall,
       el('div', { class: 'td-actions' },
         link('#/forecast', 'Make your forecast', 'btn'),
-        link('#/forecasts', 'See all forecasts', 'arrow'))),
+        link('#/forecasts', 'See all forecasts', 'arrow'),
+        getMe() ? null : link('#/me', 'Follow my forecasts', 'arrow'))),
+    youCard(app),
     guessCard(app),
     lifecycle(app),
     joinBlock('Make my daily BNB forecast with the Kodo skill.').node,
@@ -343,8 +396,8 @@ export function forecaster(app, raw) {
     // nothing scored yet (every forecaster on day one): show what is locked and when it opens
     if (!mine.length) return el('section', { class: 'view' }, head(shortAddr(addr), 'No forecasts from this address in the last 14 days. They appear here as soon as one is locked.', app.pill), link('#/forecasts', 'See every forecast', 'btn'))
     return el('section', { class: 'view' },
-      head(shortAddr(addr), `${mine.length} ${mine.length === 1 ? 'forecast' : 'forecasts'}, none scored yet. Locked numbers stay hidden until the forecaster reveals them.`, app.pill),
-      list, frame('card', lifecycle(app)))
+      head(shortAddr(addr), `${mine.length} ${mine.length === 1 ? 'forecast' : 'forecasts'}, none scored yet.`, app.pill),
+      meButton(addr), list, frame('card', lifecycle(app)))
   }
   const rank = rankRows(app).filter((r) => r.ranked).sort(SORTS.skill).findIndex((r) => r.full === addr)
   const days = settledDays(app.data.history).filter((d) => v.forecasts[d.day] || v.scores[d.day])
@@ -352,6 +405,7 @@ export function forecaster(app, raw) {
   const domain = domainFor(cols.flatMap((d) => [d.mine?.p10, d.mine?.p90, d.baseline?.p10, d.baseline?.p90, d.change]))
   return el('section', { class: 'view' },
     head(row.address, rank >= 0 ? `Rank ${rank + 1} by skill.` : `Not ranked yet: ${row.daysScored} of ${MIN_SCORED_DAYS} scored days.`, app.pill),
+    meButton(addr),
     el('div', { class: 'stats' },
       stat(`${signed(row.skillBps)}`, 'Skill, bps saved a day', row.skillBps >= 0 ? 'up' : 'down'),
       stat(`${Math.round(row.calibration * 100)}%`, 'In band'),
@@ -376,7 +430,7 @@ export function forecastsView(app) {
     body.replaceChildren(
       rows.length ? forecastTable(rows, app.data.today)
         : el('p', { class: 'note' }, q ? 'No forecasts from that address in the last 14 days. Check the address, or make your first forecast.' : 'No forecasts yet. The first one appears here as soon as it is locked.'),
-      full && rows.length ? link(`#/f/${full}`, "Open this forecaster's record", 'arrow') : null)
+      full && rows.length ? el('div', { class: 'td-actions' }, link(`#/f/${full}`, "Open this forecaster's record", 'arrow'), meButton(full)) : null)
   }
   draw()
   return el('section', { class: 'view' },
