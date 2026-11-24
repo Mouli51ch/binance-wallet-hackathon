@@ -136,3 +136,33 @@ export function forecastRows(history, today) {
   }
   return rows.sort((a, b) => b.day - a.day || a.voter.localeCompare(b.voter))
 }
+
+/**
+ * A forecast's seal: a 5x5 pattern, mirrored left to right, drawn from its on-chain commit hash.
+ * Cells are 0 (empty) to 3 (brightest). Anyone can check the seal; nobody can read the numbers.
+ */
+export function sealGlyph(hash) {
+  const bytes = String(hash).replace(/^0x/, '').match(/../g).map((b) => parseInt(b, 16))
+  const rows = []
+  for (let r = 0; r < 5; r++) {
+    const half = [0, 1, 2].map((c) => bytes[r * 3 + c] % 4)
+    rows.push([half[0], half[1], half[2], half[1], half[0]])
+  }
+  if (!rows.flat().some((c) => c > 0)) rows[2][2] = 3
+  return rows
+}
+
+/** Which way a crowd leans, by its middle: more than 0.25% either side of zero. */
+export const leanOf = (p50) => (p50 < -25 ? 'down' : p50 > 25 ? 'up' : 'flat')
+
+/** A visitor's guesses (day -> 'down' | 'flat' | 'up') scored against each day's crowd. */
+export function guessRecord(guesses, days) {
+  let right = 0, scored = 0, pending = 0, streak = 0
+  for (const d of Object.keys(guesses).map(Number).sort((a, b) => a - b)) {
+    const crowd = days[d]?.crowd
+    if (!crowd) { pending++; continue }
+    scored++
+    if (leanOf(crowd.p50) === guesses[d]) { right++; streak++ } else streak = 0
+  }
+  return { right, scored, pending, streak }
+}

@@ -1,8 +1,8 @@
 // The five app views. Each returns one DOM node built with textContent, never innerHTML:
 // chain data is data, not markup. Read-only: nothing here connects a wallet or signs.
 import { getAddress } from 'viem'
-import { backtest, dayLabel, forecastRows, leaderboard, MIN_SCORED_DAYS, pct, shortAddr, validBand } from '../model.js'
-import { bandStrip, dayColumns, domainFor } from './charts.js'
+import { backtest, dayLabel, forecastRows, guessRecord, leanOf, leaderboard, MIN_SCORED_DAYS, pct, sealGlyph, shortAddr, validBand } from '../model.js'
+import { bandStrip, dayColumns, domainFor, svg } from './charts.js'
 import { bnbPrice, usdAt } from '../price.js'
 
 export const RISK = 'Forecasting signal only. Not financial advice. No returns are promised.'
@@ -55,7 +55,7 @@ function lifecycle(app) {
     el('h3', { class: 'step-title' }, title), el('p', { class: 'step-body' }, body), el('p', { class: 'step-live' }, ...live))
   return el('ol', { class: 'steps' },
     step('1', 'Forecast', 'Send a range with your AI agent.', [`${tm.committed ?? 0} for ${dayLabel(data.today + 1)}`]),
-    step('2', 'Reveal', 'Hidden until the next day. No copying.', [`${t.revealed ?? 0} of ${t.committed ?? 0} revealed today`]),
+    step('2', 'Open', 'Sealed overnight, opened the next day.', [`${t.revealed ?? 0} of ${t.committed ?? 0} opened today`]),
     step('3', 'Score', 'The real price decides at 00:00 UTC.', [el('b', { 'data-countdown': '' }, '--:--:--'), ' to go']))
 }
 
@@ -80,12 +80,12 @@ function joinBlock(text) {
       el('a', { href: SKILL_URL, rel: 'noopener' }, 'See the skill')), ) }
 }
 
-const STAGE = { locked: 'Locked', revealed: 'Revealed', scored: 'Scored', missed: 'Not revealed' }
+const STAGE = { locked: 'Sealed', revealed: 'Opened', scored: 'Scored', missed: 'Never opened' }
 /** One row per forecast: what it said (once public), what BNB did, and how it scored. */
 function forecastTable(rows, today, { voter = true } = {}) {
   const numbers = (r) => {
     if (r.band) return `${pct(r.band.p10)} / ${pct(r.band.p50)} / ${pct(r.band.p90)}`
-    return r.stage === 'locked' ? `Hidden until revealed on ${dayLabel(r.day)}` : 'Never revealed'
+    return r.stage === 'locked' ? `Opens ${dayLabel(r.day)}` : 'Never opened'
   }
   const result = (r) => {
     if (r.score) return `${r.beat ? 'Beat a typical day' : 'Typical day did better'}: ${r.score.loss.toFixed(1)} vs ${r.score.baselineLoss.toFixed(1)}`
@@ -104,6 +104,74 @@ function forecastTable(rows, today, { voter = true } = {}) {
       el('td', { class: r.score ? (r.beat ? 'up' : 'down') : 'muted' }, result(r)))))))
 }
 
+/* ---------------------------------------------------------------- seals and the guess game */
+const SHADE = [null, 'rgba(255,77,0,.3)', 'rgba(255,77,0,.62)', '#ff4d00']
+/** The seal drawn from a forecast's on-chain hash: anyone can check it, nobody can read it. */
+function sealIcon(hash) {
+  const n = svg('svg', { viewBox: '0 0 5 5', class: 'seal', 'aria-hidden': 'true', 'shape-rendering': 'crispEdges' })
+  sealGlyph(hash).forEach((row, y) => row.forEach((c, x) => { if (c) n.append(svg('rect', { x, y, width: 1, height: 1, fill: SHADE[c] })) }))
+  return n
+}
+/** An opened forecast as a small range on a +-6% track. */
+function rangeIcon(f) {
+  const x = (v) => 50 + (Math.max(-600, Math.min(600, v)) / 600) * 48
+  return svg('svg', { viewBox: '0 0 100 20', class: 'range', 'aria-hidden': 'true' },
+    svg('line', { x1: 2, x2: 98, y1: 10, y2: 10, class: 'range-track' }),
+    svg('line', { x1: 50, x2: 50, y1: 4, y2: 16, class: 'range-zero' }),
+    svg('rect', { x: x(f.p10), y: 5, width: Math.max(1.5, x(f.p90) - x(f.p10)), height: 10, class: 'range-band' }),
+    svg('line', { x1: x(f.p50), x2: x(f.p50), y1: 2, y2: 18, class: 'range-mid' }))
+}
+const hhmm = (t) => new Date(t * 1000).toISOString().slice(11, 16)
+
+/** Every forecast for one day as a tile: a seal until its owner opens it, then its range. */
+function wall(app, day) {
+  const seals = (app.data.seals ?? []).filter((x) => x.day === day)
+  if (!seals.length) return null
+  const vs = app.data.history.voters
+  const opened = (v) => vs[Object.keys(vs).find((a) => a.toLowerCase() === v.toLowerCase())]?.forecasts?.[day]
+  return el('div', { class: 'wall' }, ...seals.map((x) => {
+    const f = opened(x.voter)
+    return el('a', { class: `tile ${f ? 'tile--open' : 'tile--sealed'}`, href: `#/f/${getAddress(x.voter)}` },
+      f ? rangeIcon(f) : sealIcon(x.hash),
+      el('span', { class: 'tile-addr' }, shortAddr(x.voter)),
+      el('span', { class: 'tile-meta' }, f ? `${pct(f.p10, 1)} to ${pct(f.p90, 1)}` : `sealed ${hhmm(x.at)} UTC`))
+  }))
+}
+
+/** Guess which way tomorrow's sealed crowd leans; scored when it opens. Kept in this browser only. */
+function guessCard(app) {
+  const { data } = app
+  const target = data.today + 1
+  const n = data.history.days[target]?.committed ?? 0
+  if (!n) return null
+  const KEY = `kodo:guesses:${data.contract ?? 'sample'}`
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) ?? {} } catch { return {} } }
+  const save = (g) => { try { localStorage.setItem(KEY, JSON.stringify(g)) } catch {} }
+  const LEAN = { down: 'Down', flat: 'Flat', up: 'Up' }
+  const card = frame('card guess')
+  const draw = () => {
+    const g = load()
+    const rec = guessRecord(g, data.history.days)
+    const last = Object.keys(g).map(Number).filter((d) => data.history.days[d]?.crowd).sort((a, b) => b - a)[0]
+    const lastLine = last != null && (() => {
+      const c = data.history.days[last].crowd
+      const ok = leanOf(c.p50) === g[last]
+      return el('p', { class: `guess-last ${ok ? 'up' : 'down'}` }, `${dayLabel(last)}: you said ${LEAN[g[last]]}, they went ${LEAN[leanOf(c.p50)]} (${pct(c.p50, 1)}). ${ok ? 'Right.' : 'Missed.'}`)
+    })()
+    card.replaceChildren(...[...card.querySelectorAll('.corner'),
+      el('h2', { class: 'card-title' }, 'Guess the crowd'),
+      el('p', { class: 'guess-q' }, n === 1 ? `1 forecast sealed for ${dayLabel(target)}. Which way does it lean?` : `${n} forecasts sealed for ${dayLabel(target)}. Which way do they lean?`),
+      g[target]
+        ? el('p', { class: 'guess-locked' }, `You said ${LEAN[g[target]]}. Find out ${dayLabel(target)}.`)
+        : el('div', { class: 'guess-opts' }, ...Object.entries(LEAN).map(([k, label]) => el('button', { type: 'button', class: 'fc-preset',
+          onclick: () => { save({ ...load(), [target]: k }); draw() } }, el('b', {}, label)))),
+      lastLine || null,
+      rec.scored ? el('p', { class: 'guess-rec' }, `Streak ${rec.streak}. Right ${rec.right} of ${rec.scored}.`) : null].filter(Boolean))
+  }
+  draw()
+  return card
+}
+
 /* ---------------------------------------------------------------- today */
 export function dashboard(app) {
   const { data } = app
@@ -117,10 +185,12 @@ export function dashboard(app) {
   // the one answer a visitor came for
   let answer, detail = null
   if (crowd) answer = `${people(t.revealed)} expect BNB between ${pct(t.crowd.p10, 1)} and ${pct(t.crowd.p90, 1)} today.`
-  else if (t.committed) { answer = `${people(t.committed)} forecast today.`; detail = 'Numbers appear as they reveal.' }
-  else if (next.committed) { answer = `${people(next.committed)} forecast ${dayLabel(data.today + 1)}.`; detail = 'Numbers stay hidden until then.' }
+  else if (t.committed) { answer = `${people(t.committed)} forecast today. Watch them open.` }
+  else if (next.committed) { answer = `${people(next.committed)} sealed a forecast for ${dayLabel(data.today + 1)}.`; detail = null }
   else answer = 'No forecasts yet. Be the first.'
 
+  const todayWall = wall(app, data.today)
+  const nextWall = wall(app, data.today + 1)
   const priceNow = el('span', { class: 'td-price' })
   bnbPrice().then((p) => { priceNow.textContent = `BNB $${p.usd.toLocaleString('en-US', { maximumFractionDigits: 2 })}` }).catch(() => {})
 
@@ -147,9 +217,14 @@ export function dashboard(app) {
       el('p', { class: 'td-big' }, answer),
       detail ? el('p', { class: 'td-detail' }, detail) : null,
       crowd ? bandStrip({ baseline: t.baseline, crowd: t.crowd, domain: domainFor([t.crowd.p10, t.crowd.p90, t.baseline?.p10, t.baseline?.p90]), labels: { crowd: 'People', baseline: 'Typical day' } }) : null,
+      todayWall ? el('p', { class: 'wall-head' }, `Today: ${t.revealed ?? 0} opened, ${(t.committed ?? 0) - (t.revealed ?? 0)} sealed`) : null,
+      todayWall,
+      nextWall ? el('p', { class: 'wall-head' }, `Sealed for ${dayLabel(data.today + 1)}. They open in `, el('b', { 'data-countdown': '' }, '--:--:--')) : null,
+      nextWall,
       el('div', { class: 'td-actions' },
         link('#/forecast', 'Make your forecast', 'btn'),
         link('#/forecasts', 'See all forecasts', 'arrow'))),
+    guessCard(app),
     lifecycle(app),
     joinBlock('Make my daily BNB forecast with the Kodo skill.').node,
     side.length === 2 ? el('div', { class: 'cols2' }, ...side) : side[0] ?? null,

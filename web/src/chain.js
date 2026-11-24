@@ -11,6 +11,7 @@ export const PULSE_ABI = parseAbi([
   'function dayInfo(uint64 day) view returns ((uint8 status, int32 changeBps, uint32 sigmaBps, uint32 reveals, int256 openPrice, int256 closePrice, uint256 crowdLoss, uint256 baselineLoss))',
   'function crowdBand(uint64 day) view returns (int32 p10, int32 p50, int32 p90, uint32 n)',
   'function baselineBand(uint64 day) view returns (int32 p10, int32 p50, int32 p90)',
+  'function forecastOf(address voter, uint64 day) view returns ((bytes32 hash, int32 p10, int32 p50, int32 p90, bool revealed, bool scored))',
   'function stats(address voter) view returns ((uint32 daysCommitted, uint32 daysScored, uint32 missedReveals, uint32 daysInBand, uint32 beatStreak, uint64 lastScoredDay, uint128 totalLoss, uint128 totalBaselineLoss))',
   'event Committed(address indexed voter, uint64 indexed day)',
   'event Revealed(address indexed voter, uint64 indexed day, int32 p10, int32 p50, int32 p90)',
@@ -125,8 +126,16 @@ export async function loadChain(cfg, { history = false } = {}) {
     days[d] = toDay(info, crowd, baseline, committedFor(d))
   }))
   const holders = await Promise.all(voters.map(async (v) => toHolder(v, await read('stats', [v]))))
+  // the seals: every commit for today and tomorrow with its on-chain hash and the time it landed.
+  // The hash proves the forecast exists and cannot change; the numbers stay unreadable until revealed.
+  const recent = logs.filter((l) => [today, today + 1].includes(Number(l.args.day))).slice(-60)
+  const at = {}
+  await Promise.all([...new Set(recent.map((l) => l.blockNumber))].map(async (b) => { at[b] = Number((await client.getBlock({ blockNumber: b })).timestamp) }))
+  const seals = await Promise.all(recent.map(async (l) => ({
+    voter: l.args.voter, day: Number(l.args.day), at: at[l.blockNumber],
+    hash: (await read('forecastOf', [l.args.voter, l.args.day])).hash })))
   // chainNow is the chain's clock: on a fork it runs days ahead of the browser's
-  const out = { sample: false, network: cfg.network, contract: cfg.address, today, startDay, chainNow: Number(head.timestamp), days, holders }
+  const out = { sample: false, network: cfg.network, contract: cfg.address, today, startDay, chainNow: Number(head.timestamp), days, holders, seals }
   if (!history) return out
   // each settled day's own sigma gives its baseline band
   const settled = [...new Set(events.filter((e) => e.eventName === 'Settled').map((e) => Number(e.args.day)))]

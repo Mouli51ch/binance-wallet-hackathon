@@ -64,7 +64,17 @@ export function sampleData(now = Date.now()) {
     return { committed: x.committed ?? 0, revealed: x.revealed ?? 0, crowd: x.crowd, baseline: x.baseline,
       settled: !!x.result, changeBps: x.result?.changeBps, crowdLoss: x.result?.crowdLoss, baselineLoss: x.result?.baselineLoss }
   }
+  // sample seals: made-up hashes for today and tomorrow, so the sealed tiles have something to draw
+  const seals = []
+  for (const d of [today, today + 1]) {
+    Object.entries(voters).forEach(([a, v], i) => {
+      if (!v.committed[d]) return
+      const hex = Array.from({ length: 64 }, (_, k) => ((d * 31 + i * 17 + k * 7) % 16).toString(16)).join('')
+      seals.push({ voter: a, day: d, hash: `0x${hex}`, at: d * 86400 - 3600 * (8 - i) })
+    })
+  }
   return {
+    seals,
     sample: true, network: 'sample', contract: null, today, chainNow: Math.floor(now / 1000),
     days: { [today - 1]: landingDay(today - 1), [today]: landingDay(today), [today + 1]: landingDay(today + 1) },
     holders, history: { days, voters },

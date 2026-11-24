@@ -118,6 +118,34 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .fc-how[open] summary{margin-bottom:12px}
 .fc-how .note{margin-top:10px}
 
+/* seals: each forecast is a tile, sealed until its owner opens it */
+.wall-head{font:500 13px/1.4 var(--mono);color:var(--g1)}
+.wall-head b{color:var(--w1);font-weight:600;font-variant-numeric:tabular-nums}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);background:#050505;transition:border-color .15s}
+.tile:hover,.tile:focus-visible{border-color:var(--o);outline:none}
+.seal{width:40px;height:40px}
+.tile--sealed .seal{animation:seal-breathe 3.6s ease-in-out infinite}
+@keyframes seal-breathe{50%{opacity:.55}}
+.tile-addr{font:600 12px/1 var(--mono);color:var(--w1)}
+.tile-meta{font:500 11px/1.2 var(--mono);color:var(--g1)}
+.tile--open .tile-meta{color:var(--o)}
+.range{width:100%;height:40px}
+.range-track{stroke:var(--line);stroke-width:1}
+.range-zero{stroke:rgba(230,230,230,.35);stroke-width:1}
+.range-band{fill:var(--o);fill-opacity:.85}
+.range-mid{stroke:#fff;stroke-width:1.5}
+@media (prefers-reduced-motion:reduce){.tile--sealed .seal{animation:none}}
+
+/* guess the crowd */
+.guess{gap:14px}
+.guess-q{font:500 18px/1.3 var(--sans);color:var(--w1)}
+.guess-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);max-width:420px}
+.guess-opts .fc-preset{align-items:center}
+.guess-locked{font:600 14px/1.4 var(--mono);color:var(--o)}
+.guess-last{font:500 13px/1.4 var(--mono)}
+.guess-rec{font:500 12px/1 var(--mono);color:var(--g1)}
+
 /* make a forecast: one sentence that says what you are forecasting, quick starts, three plain sliders */
 .fc-main{gap:22px}
 .fc-price{font:500 13px/1.5 var(--mono);color:var(--g1)}
