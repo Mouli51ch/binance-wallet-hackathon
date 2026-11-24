@@ -81,4 +81,4 @@ jobs:
       - name: Web, build
         if: steps.parts.outputs.web == 'true'
         working-directory: web
-        run: npm ci && npm run build
+        run: if [ -f package-lock.json ]; then npm ci; fi && npm run build --if-present
