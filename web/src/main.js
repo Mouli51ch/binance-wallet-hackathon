@@ -5,7 +5,9 @@ import './shaders/threeui-crt.css'
 import './scroll-reveal.css'
 import { startScrollReveal } from './scroll-reveal.js'
 import { mountCrtBackground } from './shaders/crt/CrtBackground.js'
-import { data } from './mock-data.js'
+import { data as sample } from './mock-data.js'
+import { siteConfig } from './config.js'
+import { loadChain } from './chain.js'
 import { dayLabel, dayResult, leaderboard, MIN_SCORED_DAYS, pct, validBand } from './model.js'
 
 const el = (tag, props = {}, ...kids) => {
@@ -30,7 +32,13 @@ const sheet = (head, pill, rows, notes = []) =>
   )
 
 const bandText = (b) => (validBand(b) ? `${pct(b.p10)} to ${pct(b.p90)}, middle ${pct(b.p50)}` : 'n/a')
-const pill = data.sample ? 'Sample data' : null
+// Which data: the sample until a network is chosen in config.js (or by build mode, e.g.
+// `vite --mode fork`). A failed read never falls back to the sample: the sections say what failed.
+let data = sample
+let loadError = null
+let cfg = { network: 'sample' }
+let pill = 'Sample data'
+const bps = (x) => `${Number(x).toFixed(1)} bps`
 
 function renderToday(root) {
   const t = data.days[data.today]
@@ -78,8 +86,8 @@ function renderYesterday(root) {
       ['Inside the crowd band', r.inCrowdBand ? 'yes' : 'no'],
     ]),
     sheet('Crowd vs baseline', pill, [
-      ['Crowd loss', `${d.crowdLoss} bps`],
-      ['Baseline loss', `${d.baselineLoss} bps`],
+      ['Crowd loss', bps(d.crowdLoss)],
+      ['Baseline loss', bps(d.baselineLoss)],
       ['Forecasts scored', String(d.revealed)],
     ], [r.crowdBeatBaseline ? 'The crowd beat the baseline. Lower loss is better.' : 'The baseline beat the crowd. Lower loss is better.']),
   )
@@ -131,7 +139,13 @@ function renderContract(root) {
     return
   }
   const a = getAddress(data.contract)
-  root.replaceChildren('Contract: ', el('a', { href: `https://bscscan.com/address/${a}`, rel: 'noopener' }, a), ' on BscScan')
+  // A fork address exists only on this machine, so it gets no explorer link.
+  const scan = { mainnet: 'https://bscscan.com', testnet: 'https://testnet.bscscan.com' }[cfg.network]
+  if (!scan) {
+    root.textContent = `Contract: ${a} on a local ${cfg.network} (not on BscScan).`
+    return
+  }
+  root.replaceChildren('Contract: ', el('a', { href: `${scan}/address/${a}`, rel: 'noopener' }, a), ' on BscScan')
 }
 
 // Hero background: <CrtBackground variant="terminal" ... /> with the configured props.
@@ -145,22 +159,57 @@ if (crtFrame) {
   }
 }
 
+// The hero line (T-B02): built only from revealed forecasts; before any reveal, the commit count.
+function renderHeroBand(root) {
+  const t = data.days[data.today]
+  const who = (n) => `${n} verified ${n === 1 ? 'person' : 'people'}`
+  const lead = data.sample ? 'Sample: ' : ''
+  if (validBand(t?.crowd) && t.revealed > 0) {
+    root.textContent = `${lead}${who(t.revealed)} expect BNB between ${pct(t.crowd.p10)} and ${pct(t.crowd.p90)} today.`
+  } else if (t?.committed > 0) {
+    root.textContent = `${lead}${who(t.committed)} locked a forecast for today. The band opens as they reveal.`
+  } else {
+    root.textContent = `${lead}No forecasts for today yet.`
+  }
+}
+
 const parts = [
+  ['hero-band', renderHeroBand],
   ['today-data', renderToday],
   ['yesterday-data', renderYesterday],
   ['board-data', renderBoard],
   ['contract-line', renderContract],
 ]
-for (const [id, render] of parts) {
-  const root = document.getElementById(id)
-  if (!root) continue
-  try {
-    render(root)
-  } catch (e) {
-    console.error(e)
-    root.textContent = 'This section could not load its data. Reload the page; if it keeps failing, the data source is down.'
+function renderAll() {
+  for (const [id, render] of parts) {
+    const root = document.getElementById(id)
+    if (!root) continue
+    if (loadError) {
+      root.textContent = `Could not read the ${cfg.network} contract: ${loadError.shortMessage ?? loadError.message} ` +
+        (cfg.network === 'fork' ? 'Check the fork is running (node fork/run.mjs) and reload.' : 'Reload the page; if it keeps failing, the RPC is down.')
+      continue
+    }
+    try {
+      render(root)
+    } catch (e) {
+      console.error(e)
+      root.textContent = 'This section could not load its data. Reload the page; if it keeps failing, the data source is down.'
+    }
   }
 }
 
-// Kage scroll animation: runs after the data sections exist so their cards rise in too.
+// The sample renders at once, so its cards join the scroll reveal. A chain read must not hold
+// the page: the reveals start now and the sections fill in when the RPC answers.
+async function loadAndRender() {
+  try {
+    cfg = siteConfig()
+    if (cfg.network !== 'sample') data = await loadChain(cfg)
+  } catch (e) {
+    loadError = e
+  }
+  pill = data.sample ? 'Sample data' : cfg.network === 'fork' ? 'Local fork' : null
+  renderAll()
+}
+const loading = loadAndRender() // synchronous up to its first await, so the sample is already drawn
 startScrollReveal()
+loading.catch((e) => console.error(e))
