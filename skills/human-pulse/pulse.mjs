@@ -112,14 +112,14 @@ function parseArgs(argv) {
     const eq = a.indexOf('=')
     if (eq > 0) out[a.slice(2, eq)] = a.slice(eq + 1)
     else if (i + 1 < argv.length) out[a.slice(2)] = argv[++i] // values may start with '-': --p10 -320
-    else throw new Error(`${a} needs a value.`)
+    else throw new Error(`${a} needs a value, for example ${a} -320. Add it and run again.`)
   }
   return out
 }
 
 async function connect(args) {
   const contract = args.contract ?? NETWORK.contract
-  if (!isAddress(contract, { strict: false })) throw new Error(`--contract ${contract} is not an address.`)
+  if (!isAddress(contract, { strict: false })) throw new Error(`--contract ${contract} is not an address. Leave --contract out to use the live Kodo contract.`)
   const client = createPublicClient({ transport: http(args.rpc ?? NETWORK.rpc, { retryCount: 2, timeout: 15000 }) })
   const chainId = await client.getChainId()
   if (chainId !== NETWORK.chainId) throw new Error(`The RPC is on chain ${chainId}, not BNB Smart Chain (${NETWORK.chainId}). Pass a BSC mainnet RPC with --rpc.`)
@@ -130,7 +130,8 @@ async function connect(args) {
 
 function wallet(args) {
   if (!args.from) throw new Error('--from is required: your Agentic Wallet address on BSC (baw wallet address --json, the entry with binanceChainId "56").')
-  if (!isAddress(args.from, { strict: false })) throw new Error(`--from ${args.from} is not an address.`)
+  // a mixed-case address must carry a valid checksum, so a typo'd digit is caught here
+  if (!isAddress(args.from, { strict: args.from !== args.from.toLowerCase() })) throw new Error(`--from ${args.from} is not a valid address (wrong length or checksum). Copy it again from baw wallet address --json.`)
   return getAddress(args.from.toLowerCase())
 }
 
@@ -170,10 +171,12 @@ async function prepare(args) {
     const salt = `0x${randomBytes(32).toString('hex')}`
     nextCommit = commitHash(from, tomorrow, ...p, salt)
     // saved before the calldata is shown: whatever is sent, its salt is already on disk
+    // re-read just before writing so a parallel prepare's salt is kept, not overwritten
+    const fresh = loadState()
     const k = stateKey(contract, from, tomorrow)
-    state.entries[k] = [...(state.entries[k] ?? []), { p, salt, savedAt: new Date().toISOString() }]
-    for (const key of Object.keys(state.entries)) if (BigInt(key.split(':').pop()) < today - 7n) delete state.entries[key]
-    saveState(state)
+    fresh.entries[k] = [...(fresh.entries[k] ?? []), { p, salt, savedAt: new Date().toISOString() }]
+    for (const key of Object.keys(fresh.entries)) if (BigInt(key.split(':').pop()) < today - 7n) delete fresh.entries[key]
+    saveState(fresh)
   }
   const data = buildSubmit({ nextCommit, reveal })
   const parts = [reveal && `reveals your forecast for today, ${dayLabel(today)} (${band(reveal.p)})`, commit && `locks ${band(p)} for ${dayLabel(tomorrow)}`].filter(Boolean)
@@ -183,9 +186,11 @@ async function prepare(args) {
     chainId: NETWORK.chainId, from, to: contract, value: '0', data,
     reveal: reveal && { day: dayLabel(today), p10: reveal.p[0], p50: reveal.p[1], p90: reveal.p[2] },
     commit: commit ? { day: dayLabel(tomorrow), p10: p[0], p50: p[1], p90: p[2] } : null,
+    // the calldata is only valid on the UTC day it was prepared: a commit landing later can never be revealed
+    sendBefore: new Date(Number(today + 1n) * 86400000).toISOString(),
     previewCommand: `baw contract-call preview --binanceChainId ${NETWORK.chainId} --from ${from} --to ${contract} --value 0 --inputData ${data} --json`,
     warnings,
-    note: 'Preview this, show the user the preview, and execute only after the user says yes. ' + DISCLAIMER,
+    note: `Preview this, show the user the preview, and execute only after the user says yes, before ${new Date(Number(today + 1n) * 86400000).toISOString()}. After that, run prepare again. ${DISCLAIMER}`,
   }
 }
 

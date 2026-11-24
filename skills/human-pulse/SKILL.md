@@ -81,10 +81,13 @@ On success it prints JSON:
 - `warnings`: show each one. For example, a forecast that cannot be revealed because its salt is
   not on this machine.
 - `to`, `data`, `value` (always `"0"`) and `previewCommand`.
+- `sendBefore`: the next 00:00 UTC. The calldata is only valid until then: a forecast that lands
+  after midnight is filed for the wrong day and can never be revealed. Past `sendBefore`, do not
+  execute; run `prepare` again.
 
 `prepare` saves a fresh random salt in `~/.human-pulse/state.json` before it prints anything.
 That file stays on the user's machine. It is what lets tomorrow's run reveal today's numbers.
-Never share it, and run the skill on the same machine each day.
+Never share it, run the skill on the same machine each day, and run one `prepare` at a time.
 
 If `prepare` exits with an error, show the message. It says what to do next. Common ones:
 
@@ -104,15 +107,18 @@ If `prepare` exits with an error, show the message. It says what to do next. Com
    from the table below.
 3. Show the user:
    - The `summary` from step 3.
-   - The contract address in full. It must be `0xa6EE7846434C385847B4e79EF529531a1124FfF6`
-     (Kodo on BscScan). If it is anything else, stop.
+   - The contract address in full. It must be the `to` that `prepare` printed (the live Kodo
+     contract, `0xa6EE7846434C385847B4e79EF529531a1124FfF6` at the time of writing). If the
+     preview shows any other address, stop.
    - `parsedTx`, `risks` and `authorityChanges` from the preview, and that the value is 0 BNB.
 4. Ask: "Send this forecast?" Wait for the answer.
-5. Only on a clear yes, run `baw contract-call execute --requestId <requestId> --json`.
+5. Only on a clear yes, and only if it is still before `sendBefore`, run
+   `baw contract-call execute --requestId <requestId> --json`. If `sendBefore` has passed, say so,
+   run `prepare` again with the user's numbers, and preview and ask again.
    - `status: "BROADCASTED"`: done. Give the user the `txHash` as a BscScan link.
    - `status: "PENDING_CONFIRMATION"`: tell the user to approve it in the Binance App.
-   - Preview expired: run the same `previewCommand` again and ask again. Do not run `prepare`
-     again; the salt is already saved.
+   - Preview expired: if it is still before `sendBefore`, run the same `previewCommand` again and
+     ask again (the salt is already saved). After `sendBefore`, run `prepare` again instead.
 6. On a no, do not execute. Nothing was sent, and the saved salt is harmless.
 
 ### 5. Report
