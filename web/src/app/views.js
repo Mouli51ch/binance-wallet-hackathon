@@ -299,63 +299,82 @@ export function forecastsView(app) {
 
 /* ---------------------------------------------------------------- make a forecast */
 export function forecast(app) {
-  const t = app.data.history.days[app.data.today] ?? {}
-  const past = settledDays(app.data.history).map((d) => ({ day: d.day, changeBps: d.result.changeBps, baselineLoss: d.result.baselineLoss }))
-  const start = validBand(t.crowd) ? t.crowd : t.baseline ?? { p10: -300, p50: 0, p90: 300 }
-  const band = { ...start }
+  const { data } = app
+  const day = dayLabel(data.today + 1) // a forecast made today is for tomorrow (UTC)
+  const t = data.history.days[data.today] ?? {}
+  const past = settledDays(data.history).map((d) => ({ day: d.day, changeBps: d.result.changeBps, baselineLoss: d.result.baselineLoss }))
+  const typical = Math.max(50, t.baseline?.p90 ?? 320) // the baseline's half-width: a typical day's range
+  const band = { p10: -typical, p50: 0, p90: typical }
   const LIM = 1500
-  const domain = Math.max(800, domainFor([t.baseline?.p10, t.baseline?.p90, ...past.map((d) => d.changeBps)]))
+  const domain = Math.max(800, domainFor([typical * 1.6, ...past.map((d) => d.changeBps)]))
 
-  const chartBox = el('div', { class: 'chart-box' })
-  const result = el('div', { class: 'stats' })
-  const perDay = el('ol', { class: 'past-days' })
+  let price = null // { usd, ageS, stale } from Chainlink
+  const money = (x) => `$${x.toLocaleString('en-US', { maximumFractionDigits: x >= 100 ? 0 : 2 })}`
+  const at = (bps) => (price ? money(usdAt(price.usd, bps)) : null)
+
+  const priceLine = el('p', { class: 'fc-price' }, 'Reading the live BNB price...')
+  const sentence = el('p', { class: 'fc-sentence', 'aria-live': 'polite' })
+  const exact = el('p', { class: 'fc-exact' })
+  const chartBox = el('div', { class: 'fc-chart' })
+  const backtestLine = el('p', { class: 'note' })
   const prompt = el('code', { class: 'prompt-text' })
-  const values = {}, usd = {}
-  let price = null // { usd, ageS, stale } from Chainlink, filled in after the first read
-  const money = (x) => `$${x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  const priceLine = el('p', { class: 'price-line' }, 'Reading the live BNB price from Chainlink...')
+  const outs = {}
 
+  // the three numbers, best guess first, in plain words
   const slider = (key, label) => {
-    const out = el('output', { for: `s-${key}` })
-    values[key] = out
-    const input = el('input', { id: `s-${key}`, type: 'range', min: -LIM, max: LIM, step: 5, value: band[key], 'aria-describedby': `s-${key}-v`,
+    const out = el('output', { for: `s-${key}`, class: 'fc-out' })
+    outs[key] = out
+    const input = el('input', { id: `s-${key}`, type: 'range', min: -LIM, max: LIM, step: 5, value: band[key],
       oninput: (e) => {
         const v = Number(e.target.value)
         band[key] = v
-        // keep low <= middle <= high by pushing the neighbours along
+        // keep lowest <= most likely <= highest by pushing the neighbours along
         if (key === 'p10') { band.p50 = Math.max(band.p50, v); band.p90 = Math.max(band.p90, band.p50) }
         if (key === 'p50') { band.p10 = Math.min(band.p10, v); band.p90 = Math.max(band.p90, v) }
         if (key === 'p90') { band.p50 = Math.min(band.p50, v); band.p10 = Math.min(band.p10, band.p50) }
+        presets.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', 'false'))
         sync()
       } })
-    out.id = `s-${key}-v`
-    usd[key] = el('span', { class: 'slider-usd' })
-    return el('div', { class: 'slider' }, el('label', { for: `s-${key}` }, label, usd[key]), input, out)
+    return el('div', { class: 'fc-row' }, el('label', { for: `s-${key}` }, label), input, out)
   }
-  const sliders = el('div', { class: 'sliders' }, slider('p10', 'Low, p10: 90% sure BNB ends above'), slider('p50', 'Middle, p50: best guess'), slider('p90', 'High, p90: 90% sure BNB ends below'))
+  const sliders = el('div', { class: 'fc-sliders' },
+    slider('p50', 'Most likely move'),
+    slider('p10', 'Lowest it probably goes'),
+    slider('p90', 'Highest it probably goes'))
+
+  // quick starts: a symmetric range around no change
+  const preset = (label, half) => el('button', { type: 'button', class: 'fc-preset', 'aria-pressed': String(half === typical),
+    onclick: (e) => {
+      Object.assign(band, { p10: -half, p50: 0, p90: half })
+      presets.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget)))
+      sync()
+    } }, el('b', {}, label), el('span', {}, `${pct(-half)} to ${pct(half)}`))
+  const presets = el('div', { class: 'fc-presets', role: 'group', 'aria-label': 'Quick start' },
+    preset('Calm day', Math.round(typical / 2 / 5) * 5),
+    preset('Typical day', typical),
+    preset('Wild day', Math.round((typical * 2) / 5) * 5))
 
   const sync = () => {
     for (const k of ['p10', 'p50', 'p90']) {
       sliders.querySelector(`#s-${k}`).value = band[k]
-      values[k].textContent = pct(band[k])
-      usd[k].textContent = price ? `about ${money(usdAt(price.usd, band[k]))}` : ''
+      outs[k].replaceChildren(el('b', {}, pct(band[k])), at(band[k]) ? el('span', {}, `about ${at(band[k])}`) : null)
     }
-    chartBox.replaceChildren(bandStrip({ baseline: t.baseline, crowd: validBand(t.crowd) ? t.crowd : null, mine: band, domain }))
+    sentence.textContent = price
+      ? `BNB ends ${day} somewhere between ${at(band.p10)} and ${at(band.p90)}, most likely around ${at(band.p50)}.`
+      : `BNB moves between ${pct(band.p10)} and ${pct(band.p90)} on ${day}, most likely ${pct(band.p50)}.`
+    exact.textContent = `What you send: ${pct(band.p10)} / ${pct(band.p50)} / ${pct(band.p90)}, BNB's move from 00:00 to 00:00 UTC that day.` +
+      (price ? ' Dollar values use the price now, as a guide.' : '')
+    chartBox.replaceChildren(bandStrip({ baseline: { p10: -typical, p50: 0, p90: typical }, mine: band, domain, labels: { baseline: 'Typical day', mine: 'You' } }))
     const r = backtest(band, past)
-    result.replaceChildren(
-      stat(r.days ? `${r.beat}/${r.days}` : 'n/a', 'Past days this band beat the baseline'),
-      stat(r.days ? `${signed(r.avgSavedBps)}` : 'n/a', 'Average bps saved a day', r.avgSavedBps >= 0 ? 'up' : 'down'),
-      stat(`${pct(band.p90 - band.p10)}`, 'Width, low to high'))
-    perDay.replaceChildren(...past.slice().reverse().map((d) => {
-      const inside = band.p10 <= d.changeBps && d.changeBps <= band.p90
-      return el('li', { class: inside ? 'in' : 'out' }, el('span', {}, dayLabel(d.day)), el('span', {}, `BNB ${pct(d.changeBps)}`), el('span', {}, inside ? 'inside' : 'outside'))
-    }))
+    backtestLine.textContent = r.days
+      ? `On the last ${r.days} settled ${r.days === 1 ? 'day' : 'days'}, this range would have beaten the typical day ${r.beat} ${r.beat === 1 ? 'time' : 'times'}. Past days say nothing certain about tomorrow.`
+      : 'No settled days yet to test this range on. The first one settles after the first forecast day ends.'
     prompt.textContent = `Make my daily BNB forecast with the Kodo skill: low ${pct(band.p10)}, middle ${pct(band.p50)}, high ${pct(band.p90)}.`
   }
   const copyBtn = el('button', { type: 'button', class: 'copy', onclick: async () => {
-    try { await navigator.clipboard.writeText(prompt.textContent); copyBtn.textContent = 'Prompt copied' } catch { copyBtn.textContent = 'Select the text and copy it' }
-    setTimeout(() => { copyBtn.textContent = 'Copy the prompt' }, 2400)
-  } }, 'Copy the prompt')
+    try { await navigator.clipboard.writeText(prompt.textContent); copyBtn.textContent = 'Copied' } catch { copyBtn.textContent = 'Select the text and copy it' }
+    setTimeout(() => { copyBtn.textContent = 'Copy' }, 2400)
+  } }, 'Copy')
   sync()
 
   // the live price, refreshed every 30 s while this view is on screen
@@ -364,12 +383,11 @@ export function forecast(app) {
     try {
       price = await bnbPrice()
       const age = price.ageS < 90 ? `${price.ageS} s` : `${Math.round(price.ageS / 60)} min`
-      priceLine.replaceChildren(el('b', {}, `BNB ${money(price.usd)}`),
-        ` now, from Chainlink's BNB/USD feed, the price Kodo scores against. Updated ${age} ago.` +
-        (price.stale ? ' This is over 2 hours old, so the feed may be stale.' : ''))
+      priceLine.replaceChildren('BNB now ', el('b', {}, money(price.usd)),
+        el('span', {}, ` Chainlink BNB/USD, the price Kodo scores against, updated ${age} ago${price.stale ? '. Over 2 hours old, so it may be stale' : ''}.`))
       sync()
     } catch (e) {
-      priceLine.textContent = `The live BNB price could not be read (${e.shortMessage ?? e.message}). The forecast still works in %; reload to try again.`
+      priceLine.textContent = `The live BNB price could not be read (${e.shortMessage ?? e.message}). Your forecast still works in %; reload to try again.`
     }
     return true
   }
@@ -377,23 +395,31 @@ export function forecast(app) {
     const id = setInterval(async () => { if (!priceLine.isConnected || !(await refresh())) clearInterval(id) }, 30000)
   })
 
+  const SKILL = 'https://github.com/Mouli51ch/binance-wallet-hackathon/tree/main/skills/human-pulse'
   return el('section', { class: 'view' },
-    head('Make a forecast', `For tomorrow's BNB move: a low, a middle and a high. Your agent sends it; you confirm it in Binance.`, app.pill),
-    frame('card card--hero', priceLine, sliders,
-      el('p', { class: 'note' }, 'You forecast the % move over tomorrow (UTC), from the price at 00:00 to the next 00:00. The dollar values use the price now, as a guide.'),
-      chartBox, el('p', { class: 'note' }, 'Today\'s crowd and baseline are shown for reference. A wide band rarely misses but loses a little every day; a narrow one loses more when it misses.'),
-      link('index.html#forecast', 'How scoring works', 'arrow')),
-    el('h2', { class: 'card-title' }, 'How this band would have scored'),
-    result,
-    past.length ? frame('card', perDay, el('p', { class: 'note' }, 'Past days say nothing certain about tomorrow. This is how the scoring works, not a promise of how it will go.')) : null,
-    frame('card card--prompt',
-      el('h2', { class: 'card-title' }, 'Send it with your agent'),
-      el('div', { class: 'prompt' }, prompt, copyBtn),
-      el('ol', { class: 'steps-mini' },
-        el('li', {}, 'Paste it to your agent. It needs an Agent ID wallet with Developer Mode on, and the Kodo skill.'),
-        el('li', {}, 'It shows you a preview. Read it and confirm it yourself. This site never connects a wallet or sends anything.'),
-        el('li', {}, 'Your forecast is now locked: on chain, but hidden until tomorrow.'),
-        el('li', {}, 'Tomorrow, ask your agent again. It reveals this forecast and locks the next one.'),
-        el('li', {}, 'After 00:00 UTC that day it is scored. Find it under Forecasts with your wallet address.'))),
+    head(`Your forecast for ${day}`, `How much will BNB move that day? Pick the range you are fairly sure of, 9 days in 10, and your best guess.`, app.pill),
+    frame('card fc-main',
+      priceLine,
+      sentence,
+      exact,
+      presets,
+      sliders,
+      chartBox),
+    el('div', { class: 'cols2' },
+      frame('card',
+        el('h2', { class: 'card-title' }, 'How you are scored'),
+        el('ul', { class: 'fc-list' },
+          el('li', {}, `After ${day} ends, your range is checked against Chainlink's BNB price.`),
+          el('li', {}, 'A tight range around the real move scores best. Missing the range costs more the further off you are. A very wide range loses a little every day.'),
+          el('li', {}, 'You are compared with the typical day range. Beat it over time to climb the leaderboard.'),
+          el('li', {}, `Nobody sees your numbers until you reveal them on ${day}.`)),
+        backtestLine),
+      frame('card',
+        el('h2', { class: 'card-title' }, 'Send it from your agent'),
+        el('div', { class: 'prompt' }, prompt, copyBtn),
+        el('ol', { class: 'fc-list fc-list--num' },
+          el('li', {}, 'Paste it to an agent that has Binance Agentic Wallet with Developer Mode on, your Agent ID, and the ', el('a', { href: SKILL, rel: 'noopener' }, 'Kodo skill'), '.'),
+          el('li', {}, 'It shows you a preview. You read it and confirm it yourself. This site never connects a wallet.'),
+          el('li', {}, `On ${day}, ask your agent again. That reveals this forecast and locks the next one.`)))),
   )
 }
