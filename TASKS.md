@@ -309,7 +309,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no custom call works by Nov 25 12:00 UTC, so stop building, ask the organisers (OP-9), and decide in DECISIONS.md whether to continue
 
 ### T-B02, Website reads the testnet contract
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b02-web-reads
 - Suggested: Mouli
 - Depends-on: T-B01, T-A03
 - Touches: web/
