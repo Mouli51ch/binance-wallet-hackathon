@@ -3,7 +3,7 @@
   "chainId": 56,
   "rpc": "http://127.0.0.1:8545",
   "address": "0xd532f56b47a7b11a9f8f29763321ffaedcf08aa5",
-  "deployBlock": 135415058,
+  "deployBlock": 135415636,
   "startDay": 20781,
   "agentId": "0x60b9262456de011f7d15a54cdd8c48baaa8b022f",
   "feed": "0x05764ea4f4d061fbdf0936a55ddc760dfddbb25f",

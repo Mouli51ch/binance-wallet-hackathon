@@ -42,7 +42,8 @@ const MAX_STALE = 7200n // 2 h, as in docs/ARCHITECTURE.md
 const INITIAL_SIGMA = 250 // bps a day
 
 const log = (...a) => console.log('[fork]', ...a)
-const fail = (msg) => { console.error(`[fork] ${msg}`); process.exit(1) }
+let anvilProc = null // killed on any exit, so a failed run never leaves the port taken
+const fail = (msg) => { console.error(`[fork] ${msg}`); anvilProc?.kill(); process.exit(1) }
 const tool = (name) => {
   const exe = join(FOUNDRY_BIN, process.platform === 'win32' ? `${name}.exe` : name)
   return existsSync(exe) ? exe : name
@@ -101,7 +102,8 @@ async function roundAt(t, phase, aggLatest) {
 async function realBoundaries() {
   const [latestId] = await main.readContract({ address: FEED, abi: feedAbi, functionName: 'latestRoundData' })
   const phase = latestId >> 64n, aggLatest = latestId & ((1n << 64n) - 1n)
-  const today = Math.floor(Date.now() / 86400000)
+  // the day of the block the fork will start from, not the wall clock, so the two agree at midnight
+  const today = Number((await main.getBlock()).timestamp / 86400n)
   const out = []
   for (let k = 0; k < DAYS; k++) {
     const day = today - DAYS + 1 + k
@@ -132,7 +134,7 @@ async function realHolders() {
 /* ---------------------------------------------------------------- the fork */
 async function startAnvil() {
   try { await fetch(LOCAL, { method: 'POST' }); fail(`Port ${PORT} is already in use. Stop the other node or set FORK_PORT.`) } catch {}
-  const anvil = spawn(tool('anvil'), ['--fork-url', MAINNET_RPC, '--port', String(PORT), '--silent'], { stdio: ['ignore', 'inherit', 'inherit'] })
+  const anvil = anvilProc = spawn(tool('anvil'), ['--fork-url', MAINNET_RPC, '--port', String(PORT), '--silent'], { stdio: ['ignore', 'inherit', 'inherit'] })
   anvil.on('error', (e) => fail(`anvil did not start (${e.message}). Install Foundry or set FOUNDRY_BIN.`))
   for (let i = 0; i < 120; i++) {
     try {
@@ -141,7 +143,7 @@ async function startAnvil() {
     } catch {}
     await new Promise((s) => setTimeout(s, 500))
   }
-  anvil.kill(); fail('anvil did not answer within 60 s. Check the BSC_RPC_URL it forks from.')
+  fail('anvil did not answer within 60 s. Check the BSC_RPC_URL it forks from.')
 }
 
 // Deterministic per-holder style: a bias and a width, with a little day-to-day wobble.
@@ -202,10 +204,10 @@ async function run() {
   const fresh = '0x00000000000000000000000000000000000c0de1'
   try {
     await local.simulateContract({ address: pulse, abi: Pulse.abi, functionName: 'commit', args: [toHex(1, { size: 32 })], account: fresh })
-    fail('A fresh address could commit. The Agent ID gate is not working.')
+    fail('A fresh address could commit, so the Agent ID gate is not working. Check CONTRACTS_DIR is the T-A01 contract and run forge test there.')
   } catch (e) {
     const name = e?.cause?.data?.errorName ?? e?.cause?.reason ?? e.shortMessage
-    if (!String(name).includes('NotAgentIdHolder')) fail(`A fresh address was refused for the wrong reason: ${name}`)
+    if (!String(name).includes('NotAgentIdHolder')) fail(`A fresh address was refused for the wrong reason: ${name}. Expected NotAgentIdHolder; check the contract build matches T-A01.`)
     log('fresh address refused: NotAgentIdHolder')
   }
 
@@ -241,7 +243,7 @@ async function run() {
   }
 
   const s0 = await read('stats', [holders[0]])
-  if (Number(s0.daysScored) < 2) fail(`Holder 1 has ${s0.daysScored} scored days; expected at least 2.`)
+  if (Number(s0.daysScored) < 2) fail(`Holder 1 has ${s0.daysScored} scored days; expected at least 2. Check the settle and submit lines above for a day that did not settle.`)
   gas.sort((a, b) => a - b)
   const deployBlock = Number(pulseRc.blockNumber)
   const out = {
