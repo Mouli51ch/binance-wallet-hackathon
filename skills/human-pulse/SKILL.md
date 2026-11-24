@@ -1,6 +1,6 @@
 ---
 name: human-pulse
-description: Make the user's daily Kodo forecast of BNB's % move (a low, a middle and a high) and send it to the Kodo contract on BNB Smart Chain through their Binance Agentic Wallet, with a preview the user confirms. Also reports their Kodo record. Use when the user asks to make, send or check their Kodo or daily BNB forecast.
+description: Kodo, daily BNB forecasts from verified people (one Binance Agent ID each). Anyone can ask what the Kodo crowd expects BNB to do today, with no wallet. Agent ID holders can also make their daily forecast and send it through their Binance Agentic Wallet, with a preview they confirm. Use when the user asks what Kodo or the crowd expects for BNB, or asks to make, send or check their Kodo forecast.
 ---
 
 # Kodo daily BNB forecast
@@ -15,6 +15,36 @@ only a hash of the numbers is on chain, so nobody can copy them.
 
 The transaction sends no BNB and no tokens. Every answer that shows forecasts ends with:
 "Forecasting signal only. Not financial advice." Never promise returns or accuracy.
+
+## Two things this skill does
+
+- **Read the crowd: anyone.** "What does the Kodo crowd expect for BNB today?" No wallet, no Agent
+  ID, no Binance app. Go to "Read the crowd" below.
+- **Make a forecast: Agent ID holders only.** "Make my daily BNB forecast with the Kodo skill."
+  Go to "The daily flow" below.
+
+If the user only wants to know what the crowd expects, never start the forecast flow and never run
+a `baw` command.
+
+## Read the crowd (anyone)
+
+```
+node pulse.mjs crowd
+```
+
+It reads the live Kodo contract and prints one line, for example:
+
+> Kodo, Tue 24 Nov: 5 verified people expect BNB to move between -2.84% and +2.90% today, most
+> likely +0.14% (about $530 to $562, around $546). Yesterday BNB -0.46%, and the crowd beat a
+> typical day. Forecasting signal only. Not financial advice.
+
+Show it as it is. You may say it more simply ("the crowd leans slightly up today"), but keep the
+numbers and the last sentence, and never present it as advice to buy or sell. Before anyone has
+opened a forecast for the day, it says so: forecasts stay sealed until their owners reveal them,
+so nobody can copy them.
+
+If you cannot run commands, tell the user to open https://kodo-forecast.vercel.app/app.html to
+see it.
 
 ## Rules you must keep
 
@@ -31,12 +61,14 @@ The transaction sends no BNB and no tokens. Every answer that shows forecasts en
 
 ## Setup, once
 
+For reading the crowd, only the first step is needed.
+
 - Node 18 or later. In this skill's folder run `npm install` (it installs viem).
 - The Binance Agentic Wallet CLI `baw` 1.12.0 or later and its official skill
   ([binance-agentic-wallet](https://github.com/binance/binance-skills-hub/tree/main/skills/binance-web3/binance-agentic-wallet)).
   Check with `baw cli-check --required-version 1.12.0 --json`.
 
-## The daily flow
+## The daily flow (Agent ID holders)
 
 Run every `baw` command with `--json`. `pulse.mjs` is in this skill's folder.
 

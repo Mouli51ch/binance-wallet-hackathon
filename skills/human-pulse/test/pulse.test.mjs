@@ -51,3 +51,16 @@ test('the reveal is the saved forecast whose hash is the one on chain', () => {
   assert.deepEqual(pickReveal([b, a], voter, day, VECTORS[0].hash), a)
   assert.equal(pickReveal([b], voter, day, VECTORS[0].hash), null)
 })
+
+test('crowdLine: what the Kodo crowd expects, in one plain line anyone can read', async () => {
+  const { crowdLine } = await import('../pulse.mjs')
+  const line = crowdLine({ day: 'Tue 24 Nov', crowd: { p10: -284, p50: 14, p90: 290 }, revealed: 5, usd: 546,
+    yesterday: { changeBps: -46, crowdBeat: true } })
+  assert.match(line, /^Kodo, Tue 24 Nov: 5 verified people expect BNB to move between -2\.84% and \+2\.90% today, most likely \+0\.14%/)
+  assert.match(line, /about \$530 to \$562/)
+  assert.match(line, /Yesterday BNB -0\.46%, and the crowd beat a typical day\./)
+  assert.match(line, /Forecasting signal only\. Not financial advice\.$/)
+  const quiet = crowdLine({ day: 'Tue 24 Nov', crowd: null, revealed: 0, usd: null, yesterday: null })
+  assert.match(quiet, /no forecasts opened yet today/)
+  assert.doesNotMatch(quiet, /\$/)
+})

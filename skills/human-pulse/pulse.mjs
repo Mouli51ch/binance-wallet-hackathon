@@ -5,8 +5,10 @@
 //   node pulse.mjs prepare --from <wallet> --p10 <bps> --p50 <bps> --p90 <bps>
 //       Reveals today's forecast if this machine holds its salt, commits tomorrow's with a fresh
 //       salt saved locally first, and prints the submit() calldata plus the preview command.
+//   node pulse.mjs crowd
+//       For anyone, no wallet: one line with what the Kodo crowd expects for BNB today.
 //   node pulse.mjs status [--from <wallet>]
-//       One line: today's crowd band, yesterday's result, your skill and streak.
+//       The crowd line, plus your skill and streak when --from is given.
 //
 // Numbers are basis points of BNB's % change over the UTC day (100 bps = 1%).
 // Options for testing: --rpc <url> --contract <address>. The salt store is ~/.human-pulse/state.json
@@ -30,12 +32,14 @@ export const PULSE_ABI = parseAbi([
   'function today() view returns (uint64)',
   'function startDay() view returns (uint64)',
   'function agentId() view returns (address)',
+  'function feed() view returns (address)',
   'function forecastOf(address voter, uint64 day) view returns ((bytes32 hash, int32 p10, int32 p50, int32 p90, bool revealed, bool scored))',
   'function stats(address voter) view returns ((uint32 daysCommitted, uint32 daysScored, uint32 missedReveals, uint32 daysInBand, uint32 beatStreak, uint64 lastScoredDay, uint128 totalLoss, uint128 totalBaselineLoss))',
   'function crowdBand(uint64 day) view returns (int32 p10, int32 p50, int32 p90, uint32 n)',
   'function dayInfo(uint64 day) view returns ((uint8 status, int32 changeBps, uint32 sigmaBps, uint32 reveals, int256 openPrice, int256 closePrice, uint256 crowdLoss, uint256 baselineLoss))',
 ])
 const AGENT_ID_ABI = parseAbi(['function balanceOf(address owner) view returns (uint256)'])
+const FEED_ABI = parseAbi(['function latestRoundData() view returns (uint80, int256, uint256, uint256, uint80)', 'function decimals() view returns (uint8)'])
 
 /* ------------------------------------------------------------------ pure parts (tested) */
 
@@ -74,6 +78,26 @@ export function buildSubmit({ nextCommit, reveal }) {
 /** The saved forecast whose hash is the one on chain, or null. Several prepares may exist for one day. */
 export function pickReveal(entries, voter, day, onchainHash) {
   return entries.find((e) => commitHash(voter, day, ...e.p, e.salt) === onchainHash) ?? null
+}
+
+/**
+ * What the crowd expects, in one line anyone can read. Pure, so its wording is tested.
+ *   crowd: today's averaged { p10, p50, p90 } in bps, or null before anyone opens
+ *   usd: BNB's live price, for dollar levels (optional)
+ *   yesterday: { changeBps, crowdBeat } once yesterday settled, crowdBeat null if nobody revealed
+ */
+export function crowdLine({ day, crowd, revealed, usd, yesterday }) {
+  const money = (bps) => `$${Math.round(usd * (1 + bps / 10000)).toLocaleString('en-US')}`
+  const parts = [crowd
+    ? `Kodo, ${day}: ${revealed} verified ${revealed === 1 ? 'person expects' : 'people expect'} BNB to move between ${pct(crowd.p10)} and ${pct(crowd.p90)} today, most likely ${pct(crowd.p50)}` +
+      (usd ? ` (about ${money(crowd.p10)} to ${money(crowd.p90)}, around ${money(crowd.p50)}).` : '.')
+    : `Kodo, ${day}: no forecasts opened yet today. Forecasts open during the day as their owners reveal them.`]
+  if (yesterday) {
+    parts.push(`Yesterday BNB ${pct(yesterday.changeBps)}` +
+      (yesterday.crowdBeat == null ? '.' : `, and ${yesterday.crowdBeat ? 'the crowd beat a typical day' : 'a typical day beat the crowd'}.`))
+  }
+  parts.push(DISCLAIMER)
+  return parts.join(' ')
 }
 
 export const dayLabel = (d) => new Date(Number(d) * 86400000).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(',', '')
@@ -196,22 +220,31 @@ async function prepare(args) {
 
 async function status(args) {
   const from = args.from ? wallet(args) : null
-  const { read } = await connect(args)
+  const { client, read } = await connect(args)
   const today = await read('today')
-  const [crowd, start, y] = await Promise.all([read('crowdBand', [today]), read('startDay'), read('dayInfo', [today - 1n])])
-  const bits = [`Kodo, ${dayLabel(today)}: crowd ${crowd[3] > 0 ? `${pct(crowd[0])} to ${pct(crowd[2])}, middle ${pct(crowd[1])}, ${crowd[3]} revealed` : 'no reveals yet today'}`]
-  if (today - 1n >= start) {
-    bits.push(y.status === 1 ? `yesterday BNB ${pct(y.changeBps)}, ${y.crowdLoss < y.baselineLoss ? 'the crowd beat the baseline' : 'the baseline beat the crowd'}`
-      : y.status === 2 ? 'yesterday void (stale price, nobody scored)' : 'yesterday not settled yet')
-  }
+  const [crowd, start, y, feed] = await Promise.all([read('crowdBand', [today]), read('startDay'), read('dayInfo', [today - 1n]), read('feed')])
+  let usd = null
+  try {
+    const [[, answer], decimals] = await Promise.all([
+      client.readContract({ address: feed, abi: FEED_ABI, functionName: 'latestRoundData' }),
+      client.readContract({ address: feed, abi: FEED_ABI, functionName: 'decimals' })])
+    if (answer > 0n) usd = Number(answer) / 10 ** Number(decimals)
+  } catch {} // the line still works in % without the price
+  let line = crowdLine({
+    day: dayLabel(today),
+    crowd: crowd[3] > 0 ? { p10: crowd[0], p50: crowd[1], p90: crowd[2] } : null,
+    revealed: Number(crowd[3]),
+    usd,
+    yesterday: today - 1n >= start && y.status === 1 ? { changeBps: y.changeBps, crowdBeat: y.reveals > 0 ? y.crowdLoss < y.baselineLoss : null } : null,
+  })
   if (from) {
     const [s, next] = await Promise.all([read('stats', [from]), read('forecastOf', [from, today + 1n])])
     const skill = s.daysScored > 0 ? (Number(s.totalBaselineLoss) - Number(s.totalLoss)) / 10 / s.daysScored : null
-    bits.push(`you ${skill === null ? 'have no scored days yet' : `${skill >= 0 ? '+' : ''}${skill.toFixed(1)} bps a day against the baseline over ${s.daysScored} days, streak ${s.beatStreak}`}` +
-      (s.missedReveals > 0 ? `, ${s.missedReveals} missed reveals` : '') +
-      `, ${next.hash !== ZERO ? 'tomorrow locked' : 'nothing locked for tomorrow'}`)
+    const you = `You: ${skill === null ? 'no scored days yet' : `${skill >= 0 ? '+' : ''}${skill.toFixed(1)} bps a day against a typical day over ${s.daysScored} days, streak ${s.beatStreak}`}` +
+      (s.missedReveals > 0 ? `, ${s.missedReveals} missed opens` : '') + `, ${next.hash !== ZERO ? 'tomorrow sealed' : 'nothing sealed for tomorrow'}.`
+    line = line.replace(` ${DISCLAIMER}`, ` ${you} ${DISCLAIMER}`)
   }
-  return `${bits.join('; ')}. ${DISCLAIMER}`
+  return line
 }
 
 async function main() {
@@ -219,7 +252,8 @@ async function main() {
   const cmd = args._[0]
   if (cmd === 'prepare') console.log(JSON.stringify(await prepare(args), null, 2))
   else if (cmd === 'status') console.log(await status(args))
-  else throw new Error('Usage: node pulse.mjs prepare --from <wallet> --p10 <bps> --p50 <bps> --p90 <bps>, or node pulse.mjs status [--from <wallet>].')
+  else if (cmd === 'crowd') console.log(await status({ ...args, from: undefined }))
+  else throw new Error('Usage: node pulse.mjs crowd, node pulse.mjs prepare --from <wallet> --p10 <bps> --p50 <bps> --p90 <bps>, or node pulse.mjs status [--from <wallet>].')
 }
 
 const self = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href } catch { return '' } })()
