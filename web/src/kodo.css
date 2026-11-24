@@ -1,0 +1,34 @@
+/* Kodo on top of the vendored Kage page (web/vendor/kage/kage.css). Only what Kodo adds:
+   the Japanese face from Google Fonts, the particle dissolve layer, the CRT in the hero
+   window, the sample-data marker, and the leaderboard and rule lists. */
+
+/* Kage names its faces NotoJP and Wordmark; Kodo loads Noto Sans JP and Onest instead */
+.jp, .les h3 em{ font-family:'Noto Sans JP','Onest',sans-serif; }
+
+/* particle dissolve (ThreeUI particle scroll): its output sits over the reading layer
+   (.page 10, near plane 52) and under the frame passes (vignette 55, grain 60) */
+#ps-output{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:54; }
+.ps-hidden{ visibility:hidden; }
+@media (prefers-reduced-motion:reduce){ .ps-hidden{ visibility:visible; } }
+
+/* the hero window holds the agent's terminal: the ThreeUI CRT, graded to the moon's vermilion */
+.peek-fr--crt{ position:relative; overflow:hidden; background:#05070a !important; }
+.crt-screen{ position:absolute; inset:0;
+  filter:grayscale(1) sepia(1) saturate(5.2) hue-rotate(-38deg) brightness(1.04) contrast(1.08); }
+.no-webgl .crt-screen{ display:none; }
+
+/* sample data is labelled where the data is */
+.sample-k{ color:var(--ember) !important; }
+
+/* leaderboard plates */
+.les h3{ font-variant-numeric:tabular-nums; }
+.les .t b{ display:block; font-size:clamp(20px,1.9vw,28px); font-weight:300; letter-spacing:-.02em; color:var(--bone); }
+.les .t b.down{ color:var(--muted); }
+.les .bar{ z-index:1; }
+
+/* footer lists that are facts, not links */
+.foot ul.plain li, #contract-line{ font-size:13px; color:#8f9a93; }
+#contract-line a{ color:var(--bone-dim); text-decoration:underline; text-underline-offset:3px; }
+
+/* the copy button keeps the CTA's look */
+button.cta{ cursor:pointer; color:var(--bone); }
