@@ -309,13 +309,13 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no custom call works by Nov 25 12:00 UTC, so stop building, ask the organisers (OP-9), and decide in DECISIONS.md whether to continue
 
 ### T-B02, Website reads the testnet contract
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b02-web-reads
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/14 | Owner: Mouli | Branch: feature/t-b02-web-reads
 - Suggested: Mouli
 - Depends-on: T-B01, T-A03
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: the mock data file is replaced by viem reads of `deployments/testnet.json`; all 5 sections show live testnet data; the hero is the crowd band, "N verified people expect BNB between X% and Y%", built only from revealed forecasts (before any reveal it shows the commit count, never a guessed band), shortened addresses only, never `.ai` names; the contract address and network come from 1 config file so mainnet is a 1-line change; page loads in under 3 s on a public RPC
-- Evidence: <PR link, preview URL>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/14 ; Finding: contract losses are in tenths of a bps (site was 10x off, now /10 with a test); today comes from the contract, not the browser; fork mode works, testnet waits on T-A03
 
 # P2, Nov 25. Go/no-go day.
 
