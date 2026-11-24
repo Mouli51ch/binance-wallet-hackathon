@@ -1,0 +1,30 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+keystore*.json
+.DS_Store
+.vercel/
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+
+# Agent skill: the local forecast and salt store never leaves the user's machine
+skills/human-pulse/.state/
+.human-pulse/
+
+# Claude worktrees
+.claude/worktrees/
+
+# Local only: preview config with machine paths, design tool caches and screenshots
+.claude/launch.json
+web/.taste-skill/
+web/shots/
