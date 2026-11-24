@@ -280,6 +280,15 @@ Tick in a `board/` PR as items land.
 - Acceptance: `node keeper/settle.mjs` finds yesterday's boundary round and calls `settle`, then `score` for unscored holders; dry-run mode sends 0 transactions; a GitHub Actions cron at 00:05 UTC runs it with the key from a repo secret (OP-6); 1 successful testnet run
 - Evidence: <Actions run link, tx hash>
 
+### T-A07, Local mainnet-fork end-to-end
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-a07-fork-e2e
+- Suggested: Mouli
+- Depends-on: T-A01
+- Touches: fork/, deployments/fork.json
+- Serves: Completion (judged) ; unblocks T-B02
+- Acceptance: 1 command starts anvil on a BSC mainnet fork, deploys PulseForecast from T-A01 against the real Agent ID contract, has 5 real Agent ID holder addresses (impersonated on the fork only) commit, reveal and get scored over 2 settled days, and 1 fresh address refused; settles against a replay of real Chainlink BNB/USD rounds, because a fork receives no new rounds; writes deployments/fork.json; the website shows the fork data
+- Evidence: <PR link, run log>
+
 ### T-C01, Agent skill and pulse.mjs
 - Status: open
 - Suggested: Mouli
