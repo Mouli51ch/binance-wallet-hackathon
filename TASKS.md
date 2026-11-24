@@ -223,13 +223,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, forge test output summary>
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: docs/agentic-wallet.md
 - Serves: unblocks T-C01 ; Agent ID depth (judged)
 - Acceptance: from the official skill (github.com/binance/binance-skills-hub, binance-agentic-wallet) and the Developer Mode docs, `docs/agentic-wallet.md` lists the exact commands for: check Developer Mode, build a custom contract call, preview, execute with the preview's requestId, read the wallet address; plus the daily limit, the expiry, and whether testnet is supported; every claim has its source link; at least 5 commands documented
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3 ; Finding: 12 commands documented; custom contract calls are supported (kill criterion not hit); Developer Mode lasts 7 days, extended by each use; no testnet documented (7 mainnets listed); requireConfirmation false means no Binance App tap
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
