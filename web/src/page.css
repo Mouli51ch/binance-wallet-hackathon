@@ -76,10 +76,11 @@ main{padding-bottom:40px}
 .prompt{position:relative;grid-column:span 8;grid-row:4;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;
   padding:14px 14px 14px 18px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
 .prompt code{font:400 14px/1.5 var(--mono);color:var(--w1)}
-.prompt .dim{color:var(--o)}
+.prompt .dim{color:var(--o);margin-right:8px}
 .copy{flex:none;height:34px;padding:0 14px;font:600 12px/1 var(--mono);color:var(--w1);background:var(--g2);border:1px solid var(--line);cursor:pointer}
 .copy:hover{background:#3a3a3a}
-.join__repo{position:relative;grid-column:span 8;grid-row:5;margin-top:12px;font:600 13px/1 var(--mono)}
+.prompt--2{grid-row:5;margin-top:8px}
+.join__repo{position:relative;grid-column:span 8;grid-row:6;margin-top:12px;font:600 13px/1 var(--mono)}
 .join__repo a{color:var(--o)}
 
 /* footer */

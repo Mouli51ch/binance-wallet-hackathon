@@ -109,6 +109,8 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .td-price{margin-left:14px}
 .join-card{border-color:rgba(255,77,0,.45)}
 .join-card .prompt{grid-column:auto;grid-row:auto;margin-top:0}
+.join-row{display:flex;flex-direction:column;gap:8px}
+.join-n{font:600 12px/1 var(--mono);color:var(--o)}
 .join-foot{font-size:14px;color:var(--g1)}
 .join-foot a{color:var(--w1);text-decoration:underline;text-underline-offset:3px}
 .fc-how{border:1px solid var(--line);padding:14px 18px}

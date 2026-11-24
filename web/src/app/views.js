@@ -60,17 +60,24 @@ function lifecycle(app) {
 }
 
 const SKILL_URL = 'https://github.com/Mouli51ch/binance-wallet-hackathon/tree/main/skills/human-pulse'
-/** The one thing a visitor does: copy a prompt into their AI agent. */
-function joinBlock(text) {
+/** What a visitor does: two prompts to paste into an AI agent that can run commands. */
+const INSTALL_PROMPT = 'Install the Kodo skill: copy the folder skills/human-pulse from https://github.com/Mouli51ch/binance-wallet-hackathon into ~/.claude/skills/human-pulse, then run npm install inside it.'
+function copyRow(label, text) {
   const code = el('code', { class: 'prompt-text' }, text)
   const btn = el('button', { type: 'button', class: 'copy', onclick: async () => {
     try { await navigator.clipboard.writeText(code.textContent); btn.textContent = 'Copied' } catch { btn.textContent = 'Select and copy' }
-    setTimeout(() => { btn.textContent = 'Copy the prompt' }, 2400)
-  } }, 'Copy the prompt')
-  return { code, node: frame('card join-card',
-    el('h2', { class: 'card-title' }, 'Paste this into your AI agent'),
-    el('div', { class: 'prompt' }, code, btn),
-    el('p', { class: 'join-foot' }, 'Needs the ', el('a', { href: SKILL_URL, rel: 'noopener' }, 'Kodo skill'), ' and a Binance Agent ID. You confirm in Binance.')) }
+    setTimeout(() => { btn.textContent = 'Copy' }, 2400)
+  } }, 'Copy')
+  return { code, node: el('div', { class: 'join-row' }, el('span', { class: 'join-n' }, label), el('div', { class: 'prompt' }, code, btn)) }
+}
+function joinBlock(text) {
+  const install = copyRow('1. Add the skill', INSTALL_PROMPT)
+  const go = copyRow('2. Forecast', text)
+  return { code: go.code, node: frame('card join-card',
+    el('h2', { class: 'card-title' }, 'Paste these into your AI agent'),
+    install.node, go.node,
+    el('p', { class: 'join-foot' }, 'Use an agent that runs commands on your computer, like Claude Code. Phone chat apps cannot send it. ',
+      el('a', { href: SKILL_URL, rel: 'noopener' }, 'See the skill')), ) }
 }
 
 const STAGE = { locked: 'Locked', revealed: 'Revealed', scored: 'Scored', missed: 'Not revealed' }

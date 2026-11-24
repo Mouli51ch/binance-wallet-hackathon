@@ -153,14 +153,18 @@ loss   = loss_0.1 + loss_0.5 + loss_0.9</pre>
       <ol class="steps">
         <li data-ps><b>Claim an Agent ID</b> in the Binance App, from the banner in Wallet.</li>
         <li data-ps><b>Turn on Developer Mode</b> for your Agentic Wallet. Your agent cannot do this for you.</li>
-        <li data-ps><b>Add the Kodo skill</b> to your agent.</li>
+        <li data-ps><b>Add the Kodo skill</b> to an agent that can run commands on your computer, like Claude Code. Phone chat apps cannot send it.</li>
         <li data-ps><b>Ask for today's forecast,</b> read the preview, confirm it in Binance.</li>
       </ol>
       <div class="prompt">
-        <code id="prompt-text" data-ps><span class="dim">you@agent:~$</span> Make my daily BNB forecast with the Kodo skill.</code>
-        <button type="button" class="copy" data-copy="#prompt-text">Copy the prompt</button>
+        <code id="install-text" data-ps><span class="dim">1. add the skill:</span> Install the Kodo skill: copy the folder skills/human-pulse from https://github.com/Mouli51ch/binance-wallet-hackathon into ~/.claude/skills/human-pulse, then run npm install inside it.</code>
+        <button type="button" class="copy" data-copy="#install-text">Copy</button>
       </div>
-      <p class="join__repo" data-ps><a href="https://github.com/Mouli51ch/binance-wallet-hackathon">Get the agent skill on GitHub</a></p>
+      <div class="prompt prompt--2">
+        <code id="prompt-text" data-ps><span class="dim">2. forecast:</span> Make my daily BNB forecast with the Kodo skill.</code>
+        <button type="button" class="copy" data-copy="#prompt-text">Copy</button>
+      </div>
+      <p class="join__repo" data-ps><a href="https://github.com/Mouli51ch/binance-wallet-hackathon/tree/main/skills/human-pulse">See the Kodo skill on GitHub</a></p>
     </div>
   </section>
 </main>
