@@ -223,7 +223,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, forge test output summary>
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: docs/agentic-wallet.md
@@ -233,7 +233,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/5 | Owner: Mouli | Branch: feature/t-b01-web-scaffold
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: web/
@@ -281,7 +281,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <Actions run link, tx hash>
 
 ### T-A07, Local mainnet-fork end-to-end
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 | Owner: Mouli | Branch: feature/t-a07-fork-e2e
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A01
 - Touches: fork/, deployments/fork.json
@@ -290,7 +290,7 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 ; Finding: submit (reveal + commit + score) costs 123,594 gas median, 174,707 max on the fork; 5 real holders x 5 scored days; fresh address refused; settles on real Chainlink rounds replayed with whole-day shifts
 
 ### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 | Owner: Mouli | Branch: feature/t-b04-app
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-B02
 - Touches: web/
@@ -299,7 +299,7 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 ; Finding: events alone rebuild every day and record, but give a baseline only for settled days (today's comes from baselineBand); on the fork the crowd beat the baseline on 4 of 5 settled days, inside its band 80% of the time
 
 ### T-C01, Agent skill and pulse.mjs
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 | Owner: Mouli | Branch: feature/t-c01-agent-skill
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-F02, T-A01
 - Touches: skills/human-pulse/
@@ -318,7 +318,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no custom call works by Nov 25 12:00 UTC, so stop building, ask the organisers (OP-9), and decide in DECISIONS.md whether to continue
 
 ### T-B02, Website reads the testnet contract
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/14 | Owner: Mouli | Branch: feature/t-b02-web-reads
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-B01, T-A03
 - Touches: web/
