@@ -44,6 +44,15 @@ main{padding-bottom:40px}
 .formula{margin:0;font:400 14px/1.75 var(--mono);color:var(--o);white-space:pre;overflow-x:auto}
 .sheet__note{color:var(--w2);font-weight:500}
 
+/* hero: ThreeUI CRT terminal behind the headline. The frame fills the hero box; the hero's
+   content sits above it, and its framed boxes get a dark glass so the copy stays readable
+   over the typing log. */
+.hero{padding-bottom:4rem}
+.hero .shader-frame{position:absolute;inset:0;z-index:0;pointer-events:none}
+.hero > :not(.shader-frame){position:relative;z-index:1}
+.hero .framed{background:rgba(0,0,0,.66);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.hero .eyebrow{color:var(--w2)}
+
 /* live data: today, yesterday, leaderboard */
 .inner--one .sheet{grid-column:1/-1}
 .board-scroll{overflow-x:auto}

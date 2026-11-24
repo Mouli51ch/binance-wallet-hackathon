@@ -1,6 +1,8 @@
 // Renders the Today, Yesterday and Leaderboard sections and the footer contract line.
 // Everything is built with textContent, never innerHTML: chain data is data, not markup.
 import { getAddress } from 'viem'
+import './shaders/threeui-crt.css'
+import { mountCrtBackground } from './shaders/crt/CrtBackground.js'
 import { data } from './mock-data.js'
 import { dayLabel, dayResult, leaderboard, MIN_SCORED_DAYS, pct, validBand } from './model.js'
 
@@ -128,6 +130,17 @@ function renderContract(root) {
   }
   const a = getAddress(data.contract)
   root.replaceChildren('Contract: ', el('a', { href: `https://bscscan.com/address/${a}`, rel: 'noopener' }, a), ' on BscScan')
+}
+
+// Hero background: <CrtBackground variant="terminal" ... /> with the configured props.
+const crtFrame = document.getElementById('hero-crt')
+if (crtFrame) {
+  try {
+    mountCrtBackground(crtFrame, { variant: 'terminal', speed: 1, typeSpeed: 1, motion: 1, hue: 0, saturation: 1, brightness: 1, opacity: 1 })
+  } catch (e) {
+    // No WebGL: the hero keeps its plain black background, everything else still works.
+    console.warn('CRT background disabled:', e.message)
+  }
 }
 
 const parts = [
