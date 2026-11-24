@@ -1,0 +1,12 @@
+{
+  "name": "kodo-fork",
+  "private": true,
+  "type": "module",
+  "description": "T-A07: local BSC mainnet-fork end-to-end for PulseForecast. Never touches mainnet state.",
+  "scripts": {
+    "start": "node run.mjs"
+  },
+  "dependencies": {
+    "viem": "2.58.6"
+  }
+}
