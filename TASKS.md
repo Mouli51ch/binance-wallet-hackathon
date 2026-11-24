@@ -233,7 +233,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b01-web-scaffold
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: web/
