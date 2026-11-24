@@ -289,6 +289,15 @@ Tick in a `board/` PR as items land.
 - Acceptance: 1 command starts anvil on a BSC mainnet fork, deploys PulseForecast from T-A01 against the real Agent ID contract, has 5 real Agent ID holder addresses (impersonated on the fork only) commit, reveal and get scored over 2 settled days, and 1 fresh address refused; settles against a replay of real Chainlink BNB/USD rounds, because a fork receives no new rounds; writes deployments/fork.json; the website shows the fork data
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 ; Finding: submit (reveal + commit + score) costs 123,594 gas median, 174,707 max on the fork; 5 real holders x 5 scored days; fresh address refused; settles on real Chainlink rounds replayed with whole-day shifts
 
+### T-A08, Live-contract fork end-to-end with the real skill
+- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-a08-live-fork
+- Suggested: Mouli
+- Depends-on: T-A05, T-C01, T-A07
+- Touches: fork/, deployments/fork.json
+- Serves: Completion (judged) ; Agent ID depth (judged)
+- Acceptance: 1 command forks BSC mainnet at its head with the deployed PulseForecast from deployments/mainnet.json (not a new deploy), swaps the Chainlink BNB/USD feed for a test feed on the fork only, has at least 3 real Agent ID holder addresses (impersonated on the fork only) forecast through skills/human-pulse/pulse.mjs prepare, moves the fork's clock day by day, settles, and ends with at least 5 scored days per holder; writes deployments/fork.json; the website shows the scores; nothing touches mainnet and no key is used
+- Evidence: <PR link, scores shown on the site>
+
 ### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
 - Status: done
 - Suggested: Mouli
