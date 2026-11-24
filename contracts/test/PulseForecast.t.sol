@@ -25,12 +25,13 @@ contract PulseForecastTest is Test {
     int32 constant A90 = 290;
 
     function setUp() public {
+        vm.warp(uint256(D0) * 1 days + 1 hours); // deploy inside D0
         agentId = new MockAgentId();
         feed = new MockFeed();
         pf = new PulseForecast(address(agentId), address(feed), MAX_STALE, SIGMA);
         agentId.set(alice, 1);
         agentId.set(bob, 1);
-        vm.warp(uint256(D0) * 1 days + 1 hours);
+        pf.settle(D0 - 1, _price(D0, 600e8)); // the deploy day's opening boundary
     }
 
     // ---------- helpers ----------
@@ -47,8 +48,9 @@ contract PulseForecastTest is Test {
         feed.setRound(id + 1, price, b + 60);
     }
 
-    function _hash(address who, uint64 day, int32 a, int32 b, int32 c) internal view returns (bytes32) {
-        return pf.commitHash(who, day, a, b, c, SALT);
+    function _hash(address who, uint64 day, int32 a, int32 b, int32 c) internal pure returns (bytes32) {
+        // The documented encoding, computed here so the test also checks commitHash() matches it.
+        return keccak256(abi.encode(who, day, a, b, c, SALT));
     }
 
     /// alice commits for D0+1 on D0, reveals on D0+1; day D0+1 settles with open 600, close 606 (+1%).
@@ -72,6 +74,10 @@ contract PulseForecastTest is Test {
     }
 
     // ---------- commit ----------
+
+    function test_commitHashMatchesDocumentedEncoding() public view {
+        assertEq(pf.commitHash(alice, D0 + 1, A10, A50, A90, SALT), _hash(alice, D0 + 1, A10, A50, A90));
+    }
 
     function test_holderCanCommitForTomorrow() public {
         bytes32 h = _hash(alice, D0 + 1, A10, A50, A90);
@@ -222,18 +228,56 @@ contract PulseForecastTest is Test {
 
     function test_settleWithLatestRoundAccepted() public {
         uint256 b = uint256(D0 + 1) * 1 days;
-        feed.setRound(7, 600e8, b - 60); // no round after it yet
+        feed.setRound(999999, 600e8, b - 60); // highest id and no round after it yet
         _at(D0 + 1);
-        pf.settle(D0, 7);
+        pf.settle(D0, 999999);
         assertEq(pf.boundaryPrice(D0 + 1), 600e8);
+    }
+
+    function test_settleAcrossAChainlinkPhaseChange() public {
+        uint256 b = uint256(D0 + 1) * 1 days;
+        uint80 last3 = uint80((uint256(3) << 64) | 500); // last round of phase 3
+        uint80 first4 = uint80((uint256(4) << 64) | 1); // phase 4 starts after the boundary
+        feed.setRound(last3, 600e8, b - 60);
+        feed.setRound(first4, 601e8, b + 60);
+        _at(D0 + 1);
+        pf.settle(D0, last3);
+        assertEq(pf.boundaryPrice(D0 + 1), 600e8);
+    }
+
+    function test_settleOldPhaseRoundRefusedWhenNewPhaseWasLive() public {
+        uint256 b = uint256(D0 + 1) * 1 days;
+        uint80 last3 = uint80((uint256(3) << 64) | 500);
+        uint80 first4 = uint80((uint256(4) << 64) | 1);
+        feed.setRound(last3, 600e8, b - 2 days);
+        feed.setRound(first4, 601e8, b - 1 days); // phase 4 was already live at the boundary
+        _at(D0 + 1);
+        vm.expectRevert(PulseForecast.RoundNotCurrent.selector);
+        pf.settle(D0, last3);
     }
 
     function test_settleTwiceRefused() public {
         uint80 r = _price(D0 + 1, 600e8);
         _at(D0 + 1);
         pf.settle(D0, r);
-        vm.expectRevert(PulseForecast.AlreadySettled.selector);
+        vm.expectRevert(PulseForecast.SettleInOrder.selector);
         pf.settle(D0, r);
+    }
+
+    function test_settleOutOfOrderRefused() public {
+        _price(D0 + 1, 600e8);
+        uint80 r2 = _price(D0 + 2, 610e8);
+        _at(D0 + 2);
+        vm.expectRevert(PulseForecast.SettleInOrder.selector);
+        pf.settle(D0 + 1, r2); // boundary D0+1 is not recorded yet
+    }
+
+    function test_daysBeforeDeployCannotBeSettled() public {
+        // replaying calm or wild history would steer the baseline volatility
+        uint80 r = _price(D0 - 5, 500e8);
+        vm.expectRevert(PulseForecast.SettleInOrder.selector);
+        pf.settle(D0 - 6, r);
+        assertEq(pf.startDay(), D0);
     }
 
     function test_staleRoundVoidsTheDay() public {
@@ -263,19 +307,44 @@ contract PulseForecastTest is Test {
         PulseForecast.DayInfo memory d = pf.dayInfo(D0 + 1);
         assertEq(d.status, pf.SETTLED());
         assertEq(d.changeBps, 100);
-        assertEq(d.sigmaBps, 250);
-        assertEq(d.baselineLoss, 1140); // baseline -320/0/+320 at +100
+        // the deploy day settled flat first: variance 62500 -> 0.94 * 62500 = 58750, sigma 242
+        assertEq(d.sigmaBps, 242);
+        assertEq(d.baselineLoss, 1120); // baseline -310/0/+310 at +100
 
         vm.expectEmit(address(pf));
-        emit PulseForecast.Scored(alice, D0 + 1, 880, 1140, true);
+        emit PulseForecast.Scored(alice, D0 + 1, 880, 1120, true);
         pf.score(alice, D0 + 1);
         PulseForecast.Stats memory s = pf.stats(alice);
         assertEq(s.daysScored, 1);
         assertEq(s.totalLoss, 880);
-        assertEq(s.totalBaselineLoss, 1140);
+        assertEq(s.totalBaselineLoss, 1120);
         assertEq(s.daysInBand, 1);
         assertEq(s.beatStreak, 1);
         assertEq(s.lastScoredDay, D0 + 1);
+    }
+
+    function test_scoringOutOfOrderCannotResetAStreak() public {
+        // alice beats the baseline on D0+1 and D0+2; someone scores D0+2 first, then D0+1
+        vm.prank(alice);
+        pf.commit(_hash(alice, D0 + 1, A10, A50, A90));
+        _at(D0 + 1);
+        vm.startPrank(alice);
+        pf.reveal(A10, A50, A90, SALT);
+        pf.commit(_hash(alice, D0 + 2, A10, A50, A90));
+        vm.stopPrank();
+        _settleDay(D0 + 1, 600e8, 606e8); // now inside D0+2
+        vm.prank(alice);
+        pf.reveal(A10, A50, A90, SALT);
+        uint80 r = _price(D0 + 3, 612e8);
+        _at(D0 + 3);
+        pf.settle(D0 + 2, r);
+
+        pf.score(alice, D0 + 2);
+        pf.score(alice, D0 + 1);
+        PulseForecast.Stats memory s = pf.stats(alice);
+        assertEq(s.daysScored, 2);
+        assertEq(s.beatStreak, 1);
+        assertEq(s.lastScoredDay, D0 + 2);
     }
 
     function test_scoreTwiceRefused() public {
@@ -296,7 +365,7 @@ contract PulseForecastTest is Test {
         _aliceDay(false);
         pf.score(alice, D0 + 1);
         PulseForecast.Stats memory s = pf.stats(alice);
-        assertEq(s.totalLoss, 2 * 1140);
+        assertEq(s.totalLoss, 2 * 1120);
         assertEq(s.missedReveals, 1);
         assertEq(s.daysInBand, 0);
         assertEq(s.beatStreak, 0);
@@ -304,14 +373,14 @@ contract PulseForecastTest is Test {
 
     function test_baselineSigmaUpdatesAfterSettle() public {
         _aliceDay(true);
-        // variance 250^2 = 62500 -> (94 * 62500 + 6 * 100^2) / 100 = 59350 -> sigma 243
+        // 62500 -> flat deploy day 58750 -> (94 * 58750 + 6 * 100^2) / 100 = 55825 -> sigma 236
         (int32 lo, int32 mid, int32 hi) = pf.baselineBand(D0 + 2);
         assertEq(mid, 0);
-        assertEq(hi, 311); // 243 * 1.2816
-        assertEq(lo, -311);
+        assertEq(hi, 302); // 236 * 1.2816
+        assertEq(lo, -302);
         // a settled day keeps the sigma it was scored with
         (, , hi) = pf.baselineBand(D0 + 1);
-        assertEq(hi, 320);
+        assertEq(hi, 310);
     }
 
     function test_crowdBandIsTheAverage() public {
