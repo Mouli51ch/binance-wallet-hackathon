@@ -214,7 +214,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link with hygiene, checks and secrets green>
 
 ### T-A01, PulseForecast contract and unit tests
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a01-contract
 - Suggested: Jishnu
 - Depends-on: T-A00
 - Touches: contracts/ (except contracts/test/fork/ and contracts/script/)
