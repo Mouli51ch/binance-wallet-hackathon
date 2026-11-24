@@ -164,10 +164,14 @@ function renderHeroBand(root) {
   const t = data.days[data.today]
   const who = (n) => `${n} verified ${n === 1 ? 'person' : 'people'}`
   const lead = data.sample ? 'Sample: ' : ''
+  const next = data.days[data.today + 1]
   if (validBand(t?.crowd) && t.revealed > 0) {
-    root.textContent = `${lead}${who(t.revealed)} expect BNB between ${pct(t.crowd.p10)} and ${pct(t.crowd.p90)} today.`
+    root.textContent = `${lead}${who(t.revealed)} ${t.revealed === 1 ? 'expects' : 'expect'} BNB between ${pct(t.crowd.p10)} and ${pct(t.crowd.p90)} today.`
   } else if (t?.committed > 0) {
     root.textContent = `${lead}${who(t.committed)} locked a forecast for today. The band opens as they reveal.`
+  } else if (next?.committed > 0) {
+    // day one, or a quiet day: forecasts exist, they are just hidden until they are revealed tomorrow
+    root.textContent = `${lead}${who(next.committed)} locked a forecast for ${dayLabel(data.today + 1)}. The numbers open when they are revealed that day.`
   } else {
     root.textContent = `${lead}No forecasts for today yet.`
   }
