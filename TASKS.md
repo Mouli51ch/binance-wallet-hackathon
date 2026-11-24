@@ -253,13 +253,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, gas numbers>
 
 ### T-F01, Chainlink BNB/USD round at a day boundary
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/8 | Owner: Jishnu | Branch: feature/t-f01-chainlink-boundary
 - Suggested: Jishnu
 - Depends-on: T-A00
 - Touches: spikes/F1/
 - Serves: unblocks T-A04 ; Practicality (judged)
 - Acceptance: for 7 past UTC midnights, a script finds the round current at the boundary by binary search over `getRoundData`; writes the gap between that round's `updatedAt` and midnight, the median heartbeat, and whether any phase change happened; results in `spikes/F1/result.json`
-- Evidence: <spikes/F1/result.json at a commit>
+- Evidence: spikes/F1/result.json (PR 8): round age at midnight 0 to 24 s on 7 of 7 days, median heartbeat 33 s, no phase change, 0 days over 2 h
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
