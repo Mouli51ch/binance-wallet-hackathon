@@ -9,7 +9,7 @@ import './app.css'
 import { loadChain } from '../chain.js'
 import { siteConfig } from '../config.js'
 import { sampleData } from './sample.js'
-import { dashboard, el, forecast, forecaster, forecastsView, history, leaderboardView, startCountdown } from './views.js'
+import { dashboard, el, forecast, forecaster, forecastsView, history, leaderboardView, meView, startCountdown } from './views.js'
 
 const view = document.getElementById('view')
 const app = { data: null, cfg: { network: 'sample' }, pill: 'Sample data' }
@@ -19,6 +19,7 @@ const ROUTES = [
   [/^#?\/?$/, 'dashboard', () => dashboard(app)],
   [/^#\/history$/, 'dashboard', () => history(app)],
   [/^#\/forecasts$/, 'forecasts', () => forecastsView(app)],
+  [/^#\/me$/, 'me', () => meView(app)],
   [/^#\/leaderboard$/, 'leaderboard', () => leaderboardView(app)],
   [/^#\/forecast$/, 'forecast', () => forecast(app)],
   [/^#\/f\/(.+)$/, 'forecasts', (m) => forecaster(app, safeDecode(m[1]))],
