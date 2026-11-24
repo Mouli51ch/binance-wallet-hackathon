@@ -1,9 +1,9 @@
 {
-  "name": "human-pulse-web",
+  "name": "kodo-web",
   "private": true,
   "version": "0.3.0",
   "type": "module",
-  "description": "Read-only Human Pulse website. Vite + viem, no wallet connect.",
+  "description": "Read-only Kodo website. Vite + viem, no wallet connect.",
   "scripts": {
     "dev": "vite",
     "build": "node --test test/*.test.js && vite build",

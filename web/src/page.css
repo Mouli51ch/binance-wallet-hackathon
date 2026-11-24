@@ -1,4 +1,4 @@
-/* Human Pulse additions, written in the Sublevel vocabulary (tokens and frames from sublevel.css). */
+/* Kodo additions, written in the Sublevel vocabulary (tokens and frames from sublevel.css). */
 .skip{position:fixed;left:16px;top:-60px;z-index:3000;padding:8px 14px;background:var(--o);color:#000;font:600 13px/1 var(--mono);text-decoration:none}
 .skip:focus{top:12px}
 a{color:inherit}
