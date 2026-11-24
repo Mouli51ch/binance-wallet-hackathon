@@ -15,6 +15,8 @@ export const PULSE_ABI = parseAbi([
 ])
 const COMMITTED = PULSE_ABI.find((x) => x.type === 'event' && x.name === 'Committed')
 const LOG_SPAN = 5000n // public RPCs cap eth_getLogs ranges
+const LOG_PARALLEL = 6
+const LOOKBACK_DAYS = 14n
 
 const STATUS = ['pending', 'settled', 'void']
 const tenths = (x) => Number(x) / 10
@@ -54,12 +56,22 @@ export async function loadChain(cfg) {
   const client = createPublicClient({ transport: http(cfg.rpc, { retryCount: 2 }), batch: { multicall: true } })
   const read = (functionName, args = []) => client.readContract({ address: cfg.address, abi: PULSE_ABI, functionName, args })
 
-  // Every Committed event since the deploy: who forecasts, and how many locked each day.
-  const head = await client.getBlockNumber()
+  // Committed events in a bounded window: who forecasts, and how many locked each day. The
+  // window is the last LOOKBACK_DAYS of blocks (or since the deploy, if later), measured from the
+  // chain's own block rate, so page load does not grow with the contract's age. Forecasters with
+  // no commit in that window drop off the leaderboard until they forecast again.
+  const head = await client.getBlock()
+  const back = await client.getBlock({ blockNumber: head.number > 1000n ? head.number - 1000n : 0n })
+  const perDay = head.timestamp > back.timestamp ? (86400n * (head.number - back.number)) / (head.timestamp - back.timestamp) : 0n
+  const windowStart = head.number - perDay * LOOKBACK_DAYS
+  let from = BigInt(cfg.deployBlock) > windowStart ? BigInt(cfg.deployBlock) : windowStart
+  const spans = []
+  for (; from <= head.number; from += LOG_SPAN) spans.push([from, from + LOG_SPAN - 1n < head.number ? from + LOG_SPAN - 1n : head.number])
   const logs = []
-  for (let from = BigInt(cfg.deployBlock); from <= head; from += LOG_SPAN) {
-    const to = from + LOG_SPAN - 1n < head ? from + LOG_SPAN - 1n : head
-    logs.push(...(await client.getLogs({ address: cfg.address, event: COMMITTED, fromBlock: from, toBlock: to })))
+  for (let i = 0; i < spans.length; i += LOG_PARALLEL) {
+    const batch = await Promise.all(spans.slice(i, i + LOG_PARALLEL).map(([f, t]) =>
+      client.getLogs({ address: cfg.address, event: COMMITTED, fromBlock: f, toBlock: t })))
+    logs.push(...batch.flat())
   }
   const voters = [...new Set(logs.map((l) => l.args.voter))]
   const committedFor = (d) => logs.filter((l) => Number(l.args.day) === d).length

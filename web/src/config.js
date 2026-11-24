@@ -22,5 +22,8 @@ export function siteConfig() {
     throw new Error(`No deployments/${network}.json with an address. ` +
       (network === 'fork' ? 'Run the fork first: node fork/run.mjs.' : 'The contract is not deployed on this network yet.'))
   }
-  return { network, address: dep.address, deployBlock: dep.deployBlock ?? 0, rpc: dep.rpc ?? RPC[network] }
+  if (!Number.isSafeInteger(dep.deployBlock) || dep.deployBlock <= 0) {
+    throw new Error(`deployments/${network}.json has no deployBlock. Add the contract's deploy block number so the site does not scan the chain from genesis.`)
+  }
+  return { network, address: dep.address, deployBlock: dep.deployBlock, rpc: dep.rpc ?? RPC[network] }
 }

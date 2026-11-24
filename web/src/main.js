@@ -37,13 +37,7 @@ const bandText = (b) => (validBand(b) ? `${pct(b.p10)} to ${pct(b.p90)}, middle 
 let data = sample
 let loadError = null
 let cfg = { network: 'sample' }
-try {
-  cfg = siteConfig()
-  if (cfg.network !== 'sample') data = await loadChain(cfg)
-} catch (e) {
-  loadError = e
-}
-const pill = data.sample ? 'Sample data' : cfg.network === 'fork' ? 'Local fork' : null
+let pill = 'Sample data'
 const bps = (x) => `${Number(x).toFixed(1)} bps`
 
 function renderToday(root) {
@@ -186,21 +180,36 @@ const parts = [
   ['board-data', renderBoard],
   ['contract-line', renderContract],
 ]
-for (const [id, render] of parts) {
-  const root = document.getElementById(id)
-  if (!root) continue
-  if (loadError) {
-    root.textContent = `Could not read the ${cfg.network} contract: ${loadError.shortMessage ?? loadError.message} ` +
-      (cfg.network === 'fork' ? 'Check the fork is running (node fork/run.mjs) and reload.' : 'Reload the page; if it keeps failing, the RPC is down.')
-    continue
-  }
-  try {
-    render(root)
-  } catch (e) {
-    console.error(e)
-    root.textContent = 'This section could not load its data. Reload the page; if it keeps failing, the data source is down.'
+function renderAll() {
+  for (const [id, render] of parts) {
+    const root = document.getElementById(id)
+    if (!root) continue
+    if (loadError) {
+      root.textContent = `Could not read the ${cfg.network} contract: ${loadError.shortMessage ?? loadError.message} ` +
+        (cfg.network === 'fork' ? 'Check the fork is running (node fork/run.mjs) and reload.' : 'Reload the page; if it keeps failing, the RPC is down.')
+      continue
+    }
+    try {
+      render(root)
+    } catch (e) {
+      console.error(e)
+      root.textContent = 'This section could not load its data. Reload the page; if it keeps failing, the data source is down.'
+    }
   }
 }
 
-// Kage scroll animation: runs after the data sections exist so their cards rise in too.
+// The sample renders at once, so its cards join the scroll reveal. A chain read must not hold
+// the page: the reveals start now and the sections fill in when the RPC answers.
+async function loadAndRender() {
+  try {
+    cfg = siteConfig()
+    if (cfg.network !== 'sample') data = await loadChain(cfg)
+  } catch (e) {
+    loadError = e
+  }
+  pill = data.sample ? 'Sample data' : cfg.network === 'fork' ? 'Local fork' : null
+  renderAll()
+}
+const loading = loadAndRender() // synchronous up to its first await, so the sample is already drawn
 startScrollReveal()
+loading.catch((e) => console.error(e))
