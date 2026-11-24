@@ -272,7 +272,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <testnet BscScan links>
 
 ### T-A04, Keeper script
-- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a04-keeper
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/10 | Owner: Jishnu | Branch: feature/t-a04-keeper
 - Suggested: Jishnu
 - Depends-on: T-F01, T-A03
 - Touches: keeper/, .github/workflows/keeper.yml
