@@ -44,6 +44,16 @@ main{padding-bottom:40px}
 .formula{margin:0;font:400 14px/1.75 var(--mono);color:var(--o);white-space:pre;overflow-x:auto}
 .sheet__note{color:var(--w2);font-weight:500}
 
+/* live data: today, yesterday, leaderboard */
+.inner--one .sheet{grid-column:1/-1}
+.board-scroll{overflow-x:auto}
+.board{width:100%;border-collapse:collapse;font:500 14px/1.4 var(--mono);color:var(--w1)}
+.board caption{caption-side:bottom;text-align:left;padding-top:12px;color:var(--g1);font:500 12px/1.5 var(--mono)}
+.board th{text-align:left;font-weight:500;color:var(--g1);padding:0 12px 10px 0;white-space:nowrap}
+.board td{padding:10px 12px 10px 0;border-top:1px solid var(--line);white-space:nowrap}
+.board .up{color:var(--o)}
+.board .down{color:var(--g1)}
+
 /* join */
 .contact .steps{position:relative;grid-column:span 8;grid-row:3;list-style:none;margin:8px 0 0;padding:0;counter-reset:s}
 .steps li{counter-increment:s;position:relative;padding:14px 0 14px 44px;border-top:1px solid var(--line);color:var(--w2);font-weight:500}
@@ -80,4 +90,7 @@ main{padding-bottom:40px}
   .topbar__cta{font-size:10.5px;padding:0 9px;gap:6px;height:32px;letter-spacing:0;white-space:nowrap}
   .hero .eyebrow > span:last-child,.hero .eyebrow .rule{display:none}
   .caps .cols .inner{grid-template-columns:minmax(0,1fr)}
+  .board{font-size:13px}
+  .board th,.board td{padding-right:8px}
+  .board .wide{display:none}
 }

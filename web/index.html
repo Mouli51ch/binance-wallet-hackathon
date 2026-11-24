@@ -24,9 +24,10 @@
     <i class="cnr tl" aria-hidden="true"></i><i class="cnr tr" aria-hidden="true"></i><i class="cnr bl" aria-hidden="true"></i><i class="cnr br" aria-hidden="true"></i>
     <a class="wordmark" href="#top">human pulse<i>.</i></a>
     <div class="topbar__links">
+      <a href="#today">Today</a>
+      <a href="#yesterday">Yesterday</a>
+      <a href="#board">Leaderboard</a>
       <a href="#how">How it works</a>
-      <a href="#forecast">Forecast</a>
-      <a href="#rules">Rules</a>
     </div>
     <a class="topbar__cta" href="#join"><span class="led" aria-hidden="true"></span>Join the daily forecast</a>
   </div>
@@ -45,6 +46,24 @@
         <a class="framed label act" href="#forecast"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>See how scoring works</span></a>
       </div>
     </article>
+  </section>
+
+  <section class="grid-layout caps" id="today">
+    <h2 class="f-h3">Today</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--two" id="today-data"><p class="sheet__note">Loading today's forecast. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
+  </section>
+
+  <section class="grid-layout caps" id="yesterday">
+    <h2 class="f-h3">Yesterday</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--two" id="yesterday-data"><p class="sheet__note">Loading yesterday's result. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
+  </section>
+
+  <section class="grid-layout caps" id="board">
+    <h2 class="f-h3">Leaderboard</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--one" id="board-data"><p class="sheet__note">Loading the leaderboard. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
   </section>
 
   <section class="grid-layout caps" id="how">
@@ -146,6 +165,7 @@ loss   = loss_0.1 + loss_0.5 + loss_0.9</pre>
   <hr class="rule" data-line>
   <p class="wordmark wordmark--big">human pulse<i>.</i></p>
   <p class="foot__risk">Forecasting signal only. Not financial advice. No returns are promised.</p>
+  <p class="foot__legal" id="contract-line">Contract: not deployed yet.</p>
   <p class="foot__legal">© 2026 Human Pulse. Price data from Chainlink on BNB Smart Chain. Agent ID is a Binance Wallet product; this project is independent of Binance. Particle scroll and layout system from ThreeUI.</p>
 </footer>
 </div>
@@ -153,5 +173,6 @@ loss   = loss_0.1 + loss_0.5 + loss_0.9</pre>
 <script src="vendor/particle-scroll.js"></script>
 <script src="src/sublevel-fx.js"></script>
 <script src="src/page.js"></script>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>
