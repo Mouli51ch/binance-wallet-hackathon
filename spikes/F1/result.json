@@ -1,0 +1,84 @@
+{
+  "measuredAt": "2026-11-24T05:58:20.498Z",
+  "feed": "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE",
+  "latestRoundId": "55340232221132272365",
+  "phase": 3,
+  "phaseFirstRoundUpdatedAt": "2024-08-06T16:51:32.000Z",
+  "phaseChangeInWindow": false,
+  "medianHeartbeatSeconds": 33,
+  "heartbeatSamples": 70,
+  "maxAgeAtBoundarySeconds": 24,
+  "daysOlderThan2h": 0,
+  "boundaries": [
+    {
+      "day": 20775,
+      "utc": "2026-11-18T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132255610",
+      "aggRound": "3600762",
+      "answer": "59685476780",
+      "ageSeconds": 13,
+      "nextRoundAfterSeconds": 20
+    },
+    {
+      "day": 20776,
+      "utc": "2026-11-19T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132258240",
+      "aggRound": "3603392",
+      "answer": "58192545000",
+      "ageSeconds": 9,
+      "nextRoundAfterSeconds": 24
+    },
+    {
+      "day": 20777,
+      "utc": "2026-11-20T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132260830",
+      "aggRound": "3605982",
+      "answer": "57947032214",
+      "ageSeconds": 15,
+      "nextRoundAfterSeconds": 17
+    },
+    {
+      "day": 20778,
+      "utc": "2026-11-21T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132263581",
+      "aggRound": "3608733",
+      "answer": "53954660350",
+      "ageSeconds": 7,
+      "nextRoundAfterSeconds": 26
+    },
+    {
+      "day": 20779,
+      "utc": "2026-11-22T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132266350",
+      "aggRound": "3611502",
+      "answer": "54749102000",
+      "ageSeconds": 12,
+      "nextRoundAfterSeconds": 21
+    },
+    {
+      "day": 20780,
+      "utc": "2026-11-23T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132268994",
+      "aggRound": "3614146",
+      "answer": "55862751000",
+      "ageSeconds": 0,
+      "nextRoundAfterSeconds": 33
+    },
+    {
+      "day": 20781,
+      "utc": "2026-11-24T00:00:00.000Z",
+      "found": true,
+      "roundId": "55340232221132271700",
+      "aggRound": "3616852",
+      "answer": "55602551231",
+      "ageSeconds": 24,
+      "nextRoundAfterSeconds": 9
+    }
+  ]
+}
