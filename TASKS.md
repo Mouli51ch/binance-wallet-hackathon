@@ -305,7 +305,7 @@ Tick in a `board/` PR as items land.
 - Depends-on: T-B01, T-A03
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
-- Acceptance: the mock data file is replaced by viem reads of `deployments/testnet.json`; all 5 sections show live testnet data; the contract address and network come from 1 config file so mainnet is a 1-line change; page loads in under 3 s on a public RPC
+- Acceptance: the mock data file is replaced by viem reads of `deployments/testnet.json`; all 5 sections show live testnet data; the hero is the crowd band, "N verified people expect BNB between X% and Y%", built only from revealed forecasts (before any reveal it shows the commit count, never a guessed band), shortened addresses only, never `.ai` names; the contract address and network come from 1 config file so mainnet is a 1-line change; page loads in under 3 s on a public RPC
 - Evidence: <PR link, preview URL>
 
 # P2, Nov 25. Go/no-go day.
@@ -343,7 +343,7 @@ Tick in a `board/` PR as items land.
 - Depends-on: T-B02, T-A05, OP-7
 - Touches: web/, vercel.json
 - Serves: Completion (judged) ; Practicality (judged)
-- Acceptance: public Vercel URL shows mainnet data; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
+- Acceptance: public Vercel URL shows mainnet data with the crowd band as the hero; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
 - Evidence: <URL>
 
 # P3, Nov 26. Last day with Claude.
@@ -381,7 +381,7 @@ Tick in a `board/` PR as items land.
 - Depends-on: T-J01
 - Touches: demo/
 - Serves: Innovation (judged) ; Completion (judged)
-- Acceptance: 4 scenes timed to 90 s or less: the problem, a live forecast with preview and confirm, the attack (non-holder refused, double commit refused), the next-day score and leaderboard
+- Acceptance: 4 scenes timed to 90 s or less: the problem (a crowd number anyone can fake with wallets), a live forecast with preview and confirm, "Three Doors" as read-only `eth_call` simulations against mainnet (a wallet with no Agent ID refused, a second forecast in the same round refused, an Agent ID transfer refused by Binance's own contract and credited to it) then one real forecast accepted, the crowd band and the next-day score. No `.ai` names, no attack wallets created or funded, no "humans vs AI" framing, no judge gimmicks; every number on screen is a real one
 - Evidence: <PR link>
 
 # P4, Nov 27 to Dec 9. People only.
@@ -392,7 +392,7 @@ Tick in a `board/` PR as items land.
 - Depends-on: T-J01
 - Touches: docs/recruiting.md
 - Serves: Pioneer award ; Practicality (judged)
-- Acceptance: 15 distinct Agent ID holders have sent a `submit` by Dec 1, 30 by Dec 6, counted from contract events; each joined on their own wallet and their own BNB; progress logged daily
+- Acceptance: recruiting starts the day T-J01 lands, not on Nov 27; 15 distinct Agent ID holders have sent a `submit` by Dec 1, 30 by Dec 6, counted from contract events; each joined on their own wallet and their own BNB; progress logged daily
 - Evidence: <holder count from events, date>
 - Kill criterion: under 10 holders on Dec 1, so all effort goes to recruiting and the Pioneer award
 
