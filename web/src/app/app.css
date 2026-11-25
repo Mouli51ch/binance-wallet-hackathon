@@ -159,8 +159,17 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
 .race-trail{fill:none;stroke:#fff;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round;opacity:.9;
   stroke-dasharray:8000;stroke-dashoffset:8000;animation:race-draw 2.4s ease-out .2s forwards}
 .race-ballg{transition:transform 1.6s cubic-bezier(.2,.9,.25,1)}
-.race-ball{fill:#fff;filter:drop-shadow(0 0 7px rgba(255,255,255,.9)) drop-shadow(0 0 18px rgba(255,77,0,.9))}
-.race--in .race-ball{fill:#ff4d00}
+.race-tilt{transition:transform 1.2s ease;transform-box:view-box}
+.race-body{fill:#f2f2f2}
+.race-window{fill:#0b0b0b;stroke:#ff4d00;stroke-width:1.6}
+.race-fin{fill:#ff4d00}
+.race-flame{fill:#ff4d00;transform-box:fill-box;transform-origin:50% 0;animation:race-flicker .14s ease-in-out infinite alternate;filter:drop-shadow(0 0 8px rgba(255,77,0,.9))}
+.race-flame-core{fill:#ffd166;transform-box:fill-box;transform-origin:50% 0;animation:race-flicker .11s ease-in-out infinite alternate-reverse}
+.race--boost .race-flame{animation:race-boost .5s ease-in-out 5 alternate}
+@keyframes race-flicker{from{transform:scaleY(.82)}to{transform:scaleY(1.08)}}
+@keyframes race-boost{from{transform:scaleY(1.1)}to{transform:scaleY(1.9)}}
+.race-price.flash{animation:race-flash 1s ease-out}
+@keyframes race-flash{0%{color:#ff4d00;text-shadow:0 0 18px rgba(255,77,0,.9)}100%{color:var(--w1);text-shadow:none}}
 .race-ring{fill:none;stroke:#ff4d00;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:race-ring 1.8s ease-out infinite}
 .race-post{fill:rgba(255,255,255,.2);transition:fill .5s}
 .race-post.on{fill:#ff4d00;filter:drop-shadow(0 0 6px rgba(255,77,0,.9))}
@@ -174,6 +183,25 @@ body.app{min-height:100vh;display:flex;flex-direction:column}
   .race *{animation:none!important;transition:none!important}
   .race-trail{stroke-dashoffset:0}
 }
+
+/* the live ticker */
+.ticker{display:flex;align-items:center;gap:12px;border:1px solid var(--line);background:#050505;padding:8px 12px;overflow:hidden}
+.ticker-live{flex:none;font:700 11px/1 var(--mono);color:#000;background:var(--o);padding:4px 7px;letter-spacing:.06em;animation:ticker-blink 1.6s ease-in-out infinite}
+@keyframes ticker-blink{50%{opacity:.55}}
+.ticker-win{overflow:hidden;flex:1;min-width:0;mask-image:linear-gradient(90deg,transparent,#000 4%,#000 96%,transparent)}
+.ticker-track{display:flex;gap:28px;width:max-content}
+.ticker-track--move{animation:ticker-roll var(--ticker-s,40s) linear infinite}
+.ticker:hover .ticker-track--move{animation-play-state:paused}
+@keyframes ticker-roll{to{transform:translateX(-50%)}}
+.ti{display:inline-flex;align-items:center;gap:7px;font:500 12px/1 var(--mono);color:var(--w2);white-space:nowrap}
+.ti .seal{width:14px;height:14px;animation:none}
+.ti--open::before,.ti--win::before,.ti--close::before{content:"";width:7px;height:7px;border-radius:50%}
+.ti--open::before{background:var(--o)}
+.ti--win::before{background:#3ddc97}.ti--win{color:#3ddc97}
+.ti--close::before{background:#fff}
+.crown{width:16px;height:10px;fill:#ffd166;filter:drop-shadow(0 0 6px rgba(255,209,102,.7));vertical-align:middle;margin-left:6px}
+.rank-1{display:inline-flex;align-items:center;gap:4px}.rank-1 .crown{margin-left:0}
+@media (prefers-reduced-motion:reduce){.ticker-track--move,.ticker-live{animation:none}.ticker-win{overflow-x:auto}}
 
 /* seals: each forecast is a tile, sealed until its owner opens it */
 .wall-head{font:500 13px/1.4 var(--mono);color:var(--g1)}
