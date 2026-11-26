@@ -386,13 +386,13 @@ Tick in a `board/` PR as items land.
 # P3, Nov 26. Last day with Claude.
 
 ### T-D01, README
-- Status: claimed 2026-11-26 | Owner: Mouli | Branch: feature/t-d01-readme
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/39 | Owner: Mouli | Branch: feature/t-d01-readme
 - Suggested: Jishnu
 - Depends-on: T-A05
 - Touches: README.md
 - Serves: Agent ID depth (judged) ; Practicality (judged)
 - Acceptance: what it is, how to join in 4 steps, how scoring works, contract address with BscScan link, "Owner permissions: none (no owner, no admin, no pause, no upgrades, holds no funds)", risk warning, 1 section per judged criterion
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/39 ; Finding: the keeper is the one part that cannot run without a person (it needs a funded key), so the README says it only plans transactions until that key exists rather than claiming daily settlement
 
 ### T-D02, HANDOFF.md: running it without Claude
 - Status: claimed 2026-11-26 | Owner: Mouli | Branch: feature/t-d02-handoff
