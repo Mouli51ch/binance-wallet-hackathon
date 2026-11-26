@@ -244,13 +244,13 @@ Tick in a `board/` PR as items land.
 # P1, Nov 24
 
 ### T-A02, Fork tests and gas
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/9 | Owner: Jishnu | Branch: feature/t-a02-fork-tests
 - Suggested: Jishnu
 - Depends-on: T-A01
 - Touches: contracts/test/fork/
 - Serves: Agent ID depth (judged) ; cost metric
 - Acceptance: on a BSC mainnet fork, 1 real Agent ID holder address (found from the Agent ID contract's Transfer events) can `commit` via `vm.prank` and 1 fresh address is refused; `settle` succeeds with a real historical Chainlink round at a real 00:00 UTC boundary; gas for `submit` (reveal + commit + score) measured and written in this row
-- Evidence: <PR link, gas numbers>
+- Evidence: PR 9, 5 of 5 fork tests pass at block 135411040. Gas (execution): submit reveal + commit + score 129,984, reveal + commit 101,613, first commit 53,841, settle 148,086; about 155k per daily tx in full, about $0.004 at 0.05 gwei
 
 ### T-F01, Chainlink BNB/USD round at a day boundary
 - Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/8 | Owner: Jishnu | Branch: feature/t-f01-chainlink-boundary
