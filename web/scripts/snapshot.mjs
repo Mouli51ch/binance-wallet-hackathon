@@ -11,7 +11,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPublicClient, http } from 'viem'
 import { mergeLogs, packLogs, readLogs, unpackLogs } from '../src/chain.js'
 
-const LIVE = process.env.SNAPSHOT_BASE ?? 'https://kodo-forecast.vercel.app/snapshot.json'
+const BASES = [process.env.SNAPSHOT_BASE, 'https://kodo-forecast.vercel.app/snapshot.json'].filter(Boolean) // newest wins
 const RPC_HISTORY = 100000n // blocks of event history a pruning public RPC still serves
 const REORG = 30n
 const dep = JSON.parse(readFileSync(new URL('../../deployments/mainnet.json', import.meta.url), 'utf8'))
@@ -22,8 +22,8 @@ const out = new URL('../public/snapshot.json', import.meta.url)
 const parse = (s) => (s && String(s.address).toLowerCase() === String(address).toLowerCase()
   ? { from: BigInt(s.from), to: BigInt(s.to), logs: unpackLogs(s.logs), recovered: s.recovered } : null)
 const local = existsSync(out) ? parse(JSON.parse(readFileSync(out, 'utf8'))) : null
-const live = await fetch(`${LIVE}?c=${Date.now()}`).then((r) => (r.ok ? r.json() : null)).then(parse).catch(() => null)
-const base = [local, live].filter((b) => b && b.from <= deployBlock).sort((a, b) => (a.to > b.to ? -1 : 1))[0]
+const remote = await Promise.all(BASES.map((u) => fetch(`${u}?c=${Date.now()}`).then((r) => (r.ok ? r.json() : null)).then(parse).catch(() => null)))
+const base = [local, ...remote].filter((b) => b && b.from <= deployBlock).sort((a, b) => (a.to > b.to ? -1 : 1))[0]
 
 const client = createPublicClient({ transport: http(process.env.BSC_RPC_URL ?? 'https://rpc-bsc.48.club', { retryCount: 3, timeout: 30000 }) })
 const t = Date.now()
@@ -35,8 +35,8 @@ if (head - start > RPC_HISTORY && (await client.getLogs({ fromBlock: start, toBl
     'Set BSC_RPC_URL to an RPC that keeps the full event history (rpc-bsc.48.club does) and run it again. Nothing was written.')
   process.exit(1)
 }
-const fresh = await readLogs(client, address, start, head)
+const fresh = await readLogs(client, address, start, head, 8) // 48.club times out on 32 at once
 const logs = mergeLogs([base ? base.logs.filter((l) => l.blockNumber < start) : [], fresh], deployBlock)
 mkdirSync(new URL('./', out), { recursive: true }) // web/public is not in git
 writeFileSync(out, JSON.stringify({ network: 'mainnet', address, from: String(deployBlock), to: String(head), logs: packLogs(logs), ...(base?.recovered ? { recovered: base.recovered } : {}) }))
-console.log(`snapshot: ${logs.length} events to block ${head} (${fresh.length} new since block ${start}, base: ${base === local ? 'local file' : base ? 'live site' : 'none'}) in ${((Date.now() - t) / 1000).toFixed(1)} s`)
+console.log(`snapshot: ${logs.length} events to block ${head} (${fresh.length} new since block ${start}, base: ${base === local ? 'local file' : base ? 'remote copy' : 'none'}) in ${((Date.now() - t) / 1000).toFixed(1)} s`)
