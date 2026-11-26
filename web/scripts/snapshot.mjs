@@ -7,7 +7,7 @@
 // rpc-bsc.48.club keeps all of it (checked 2026-11-26), so it is the default here. The script
 // starts from the previous snapshot (the local file, else the live site's), adds only new events,
 // and fails loudly when the RPC it uses has pruned the blocks it needs.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPublicClient, http } from 'viem'
 import { mergeLogs, packLogs, readLogs, unpackLogs } from '../src/chain.js'
 
@@ -37,5 +37,6 @@ if (head - start > RPC_HISTORY && (await client.getLogs({ fromBlock: start, toBl
 }
 const fresh = await readLogs(client, address, start, head)
 const logs = mergeLogs([base ? base.logs.filter((l) => l.blockNumber < start) : [], fresh], deployBlock)
+mkdirSync(new URL('./', out), { recursive: true }) // web/public is not in git
 writeFileSync(out, JSON.stringify({ network: 'mainnet', address, from: String(deployBlock), to: String(head), logs: packLogs(logs), ...(base?.recovered ? { recovered: base.recovered } : {}) }))
 console.log(`snapshot: ${logs.length} events to block ${head} (${fresh.length} new since block ${start}, base: ${base === local ? 'local file' : base ? 'live site' : 'none'}) in ${((Date.now() - t) / 1000).toFixed(1)} s`)
