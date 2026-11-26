@@ -1,7 +1,21 @@
 {
-  "name": "human-pulse-web",
+  "name": "kodo-web",
   "private": true,
-  "version": "0.2.0",
-  "description": "Static landing page for Human Pulse. No build step.",
-  "scripts": { "serve": "npx --yes http-server . -p 5173 -c-1 -a ::" }
+  "version": "0.3.0",
+  "type": "module",
+  "description": "Read-only Kodo website. Vite + viem, no wallet connect.",
+  "scripts": {
+    "dev": "vite",
+    "dev:fork": "vite --mode fork",
+    "build": "node --test test/*.test.js && vite build",
+    "preview": "vite preview",
+    "test": "node --test test/*.test.js",
+    "snapshot": "node scripts/snapshot.mjs"
+  },
+  "dependencies": {
+    "viem": "2.58.6"
+  },
+  "devDependencies": {
+    "vite": "8.3.8"
+  }
 }

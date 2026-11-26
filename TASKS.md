@@ -223,43 +223,43 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link, forge test output summary>
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-f02-agentic-wallet-docs
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: docs/agentic-wallet.md
 - Serves: unblocks T-C01 ; Agent ID depth (judged)
 - Acceptance: from the official skill (github.com/binance/binance-skills-hub, binance-agentic-wallet) and the Developer Mode docs, `docs/agentic-wallet.md` lists the exact commands for: check Developer Mode, build a custom contract call, preview, execute with the preview's requestId, read the wallet address; plus the daily limit, the expiry, and whether testnet is supported; every claim has its source link; at least 5 commands documented
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/3 ; Finding: 12 commands documented; custom contract calls are supported (kill criterion not hit); Developer Mode lasts 7 days, extended by each use; no testnet documented (7 mainnets listed); requireConfirmation false means no Binance App tap
 - Kill criterion: no documented way to call a custom contract after 2 hours, so raise it with the organisers (OP-9) and keep building; the Nov 25 spike decides
 
 ### T-B01, Website scaffold with mock data
-- Status: claimed 2026-11-24 | Owner: Mouli | Branch: feature/t-b01-web-scaffold
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A00
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
-- Acceptance: Vite + viem static site with 5 sections from `docs/ARCHITECTURE.md` section 7 (today, yesterday, leaderboard, how to join, footer with risk warning) rendering from a mock data file; 0 wallet-connect code; 0 `name.ai` names; addresses shortened; works at 375 px wide; `npm run build` passes
-- Evidence: <PR link, screenshot>
+- Acceptance: Vite + viem static site with 5 sections from `docs/ARCHITECTURE.md` section 7 (today, yesterday, leaderboard, how to join, footer with risk warning) rendering from a mock data file; every leaderboard row shows the holder's missed reveals next to their score (DECISIONS.md, 2026-11-24); 0 wallet-connect code; 0 `name.ai` names; addresses shortened; works at 375 px wide; `npm run build` passes
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/5 ; Finding: 5 sections render from sample data; page is 375 px wide at 375 px with no sideways scroll; build runs 3 model tests then builds in about 0.2 s; Vite drops the 3 classic scripts from dist unless copied, so vite.config.js copies them; loss unit assumed bps, T-B02 must confirm
 
 # P1, Nov 24
 
 ### T-A02, Fork tests and gas
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/9 | Owner: Jishnu | Branch: feature/t-a02-fork-tests
 - Suggested: Jishnu
 - Depends-on: T-A01
 - Touches: contracts/test/fork/
 - Serves: Agent ID depth (judged) ; cost metric
 - Acceptance: on a BSC mainnet fork, 1 real Agent ID holder address (found from the Agent ID contract's Transfer events) can `commit` via `vm.prank` and 1 fresh address is refused; `settle` succeeds with a real historical Chainlink round at a real 00:00 UTC boundary; gas for `submit` (reveal + commit + score) measured and written in this row
-- Evidence: <PR link, gas numbers>
+- Evidence: PR 9, 5 of 5 fork tests pass at block 135411040. Gas (execution): submit reveal + commit + score 129,984, reveal + commit 101,613, first commit 53,841, settle 148,086; about 155k per daily tx in full, about $0.004 at 0.05 gwei
 
 ### T-F01, Chainlink BNB/USD round at a day boundary
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/8 | Owner: Jishnu | Branch: feature/t-f01-chainlink-boundary
 - Suggested: Jishnu
 - Depends-on: T-A00
 - Touches: spikes/F1/
 - Serves: unblocks T-A04 ; Practicality (judged)
 - Acceptance: for 7 past UTC midnights, a script finds the round current at the boundary by binary search over `getRoundData`; writes the gap between that round's `updatedAt` and midnight, the median heartbeat, and whether any phase change happened; results in `spikes/F1/result.json`
-- Evidence: <spikes/F1/result.json at a commit>
+- Evidence: spikes/F1/result.json (PR 8): round age at midnight 0 to 24 s on 7 of 7 days, median heartbeat 33 s, no phase change, 0 days over 2 h
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
@@ -281,14 +281,50 @@ Tick in a `board/` PR as items land.
 - Acceptance: `node keeper/settle.mjs` finds yesterday's boundary round and calls `settle`, then `score` for unscored holders; dry-run mode sends 0 transactions; a GitHub Actions cron at 00:05 UTC runs it with the key from a repo secret (OP-6); 1 successful testnet run
 - Evidence: <Actions run link, tx hash>
 
+### T-A07, Local mainnet-fork end-to-end
+- Status: done
+- Suggested: Mouli
+- Depends-on: T-A01
+- Touches: fork/, deployments/fork.json
+- Serves: Completion (judged) ; unblocks T-B02
+- Acceptance: 1 command starts anvil on a BSC mainnet fork, deploys PulseForecast from T-A01 against the real Agent ID contract, has 5 real Agent ID holder addresses (impersonated on the fork only) commit, reveal and get scored over 2 settled days, and 1 fresh address refused; settles against a replay of real Chainlink BNB/USD rounds, because a fork receives no new rounds; writes deployments/fork.json; the website shows the fork data
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 ; Finding: submit (reveal + commit + score) costs 123,594 gas median, 174,707 max on the fork; 5 real holders x 5 scored days; fresh address refused; settles on real Chainlink rounds replayed with whole-day shifts
+
+### T-A08, Live-contract fork end-to-end with the real skill
+- Status: done
+- Suggested: Mouli
+- Depends-on: T-A05, T-C01, T-A07
+- Touches: fork/, deployments/fork.json
+- Serves: Completion (judged) ; Agent ID depth (judged)
+- Acceptance: 1 command forks BSC mainnet at its head with the deployed PulseForecast from deployments/mainnet.json (not a new deploy), swaps the Chainlink BNB/USD feed for a test feed on the fork only, has at least 3 real Agent ID holder addresses (impersonated on the fork only) forecast through skills/human-pulse/pulse.mjs prepare, moves the fork's clock day by day, settles, and ends with at least 5 scored days per holder; writes deployments/fork.json; the website shows the scores; nothing touches mainnet and no key is used
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/28 ; Finding: the deployed contract and real pulse.mjs calldata scored 4 real holders x 5 days on the fork (submit 123,409 gas median, 174,522 max); the site ranked all 4 and showed 6 settled days; a fork needs the feed swapped because it gets no new Chainlink rounds, and the proxy's storage slot 1 must be cleared or the test feed's latest round reads garbage
+
+### T-B04, App pages: dashboard, history, leaderboard, forecaster, make a forecast
+- Status: done
+- Suggested: Mouli
+- Depends-on: T-B02
+- Touches: web/
+- Serves: Practicality (judged) ; Completion (judged)
+- Acceptance: a read-only app at app.html with 5 views reachable from the landing page: dashboard (today's crowd band against the baseline band, countdown to 00:00 UTC, commits for tomorrow), history (every settled day: BNB move, crowd band, baseline band, both losses), leaderboard (sortable, address search, 5 scored days to rank), forecaster page per address (skill, in-band %, streak, missed reveals, each day's band against the outcome), make a forecast (low, middle and high sliders, how that band would have scored on past settled days, the exact prompt for the agent); 0 wallet-connect code; 0 `name.ai` names; works at 375 px; every view with forecasts carries "Forecasting signal only. Not financial advice."; tested on the T-A07 fork
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/16 ; Finding: events alone rebuild every day and record, but give a baseline only for settled days (today's comes from baselineBand); on the fork the crowd beat the baseline on 4 of 5 settled days, inside its band 80% of the time
+
 ### T-C01, Agent skill and pulse.mjs
-- Status: open
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-F02, T-A01
 - Touches: skills/human-pulse/
 - Serves: Agent ID depth (judged) ; Innovation (judged)
 - Acceptance: `SKILL.md` follows the 5-step flow in `docs/ARCHITECTURE.md` section 6 and never confirms for the user; `pulse.mjs prepare` writes a salt to a local state file, builds the `submit` calldata whose commit hash matches the contract's in 1 shared test vector; `pulse.mjs status` prints 1 line; tested against the testnet deploy with 1 sent transaction
-- Evidence: <PR link, testnet tx hash>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 ; commit hash matches the deployed mainnet contract on 2 vectors; mainnet-fork end to end against the deployed bytecode (no testnet key here, so no testnet tx) ; Finding: commit costs 77,451 gas and reveal plus commit 135,242; a commit confirmed after 00:00 UTC is filed for the wrong day and can never be revealed, so prepare prints sendBefore and refuses in the last 10 minutes
+
+### T-C02, Skill read mode: anyone asks what the crowd expects
+- Status: done
+- Suggested: Mouli
+- Depends-on: T-C01, T-A05
+- Touches: skills/human-pulse/
+- Serves: Practicality (judged) ; Agent ID depth (judged)
+- Acceptance: someone without an Agent ID, wallet or Developer Mode asks their agent what the Kodo crowd expects for BNB and gets 1 plain line from the live contract (the crowd's range and middle in % and in dollars at the live Chainlink price, yesterday's result against a typical day, the risk line); `SKILL.md` splits reading (anyone) from forecasting (Agent ID holders) and the read path runs no `baw` command; the line's wording has 1 test
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/29 ; Finding: before anyone opens a forecast the crowd line can only say none are open yet, because sealed forecasts reveal nothing but their count; dollar levels come from the contract's own feed() so they match what scoring uses
 
 ### T-F03, Developer Mode can call a custom contract on mainnet
 - Status: open
@@ -301,13 +337,13 @@ Tick in a `board/` PR as items land.
 - Kill criterion: no custom call works by Nov 25 12:00 UTC, so stop building, ask the organisers (OP-9), and decide in DECISIONS.md whether to continue
 
 ### T-B02, Website reads the testnet contract
-- Status: open
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-B01, T-A03
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: the mock data file is replaced by viem reads of `deployments/testnet.json`; all 5 sections show live testnet data; the hero is the crowd band, "N verified people expect BNB between X% and Y%", built only from revealed forecasts (before any reveal it shows the commit count, never a guessed band), shortened addresses only, never `.ai` names; the contract address and network come from 1 config file so mainnet is a 1-line change; page loads in under 3 s on a public RPC
-- Evidence: <PR link, preview URL>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/14 ; Finding: contract losses are in tenths of a bps (site was 10x off, now /10 with a test); today comes from the contract, not the browser; fork mode works, testnet waits on T-A03
 
 # P2, Nov 25. Go/no-go day.
 
@@ -339,13 +375,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <Actions run links, settle tx hashes>
 
 ### T-B03, Website live on Vercel against mainnet
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/35 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
 - Suggested: Mouli
 - Depends-on: T-B02, T-A05, OP-7
-- Touches: web/, vercel.json
+- Touches: web/, vercel.json, .github/workflows/snapshot.yml
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: public Vercel URL shows mainnet data with the crowd band as the hero; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
-- Evidence: <URL>
+- Evidence: https://kodo-forecast.vercel.app reads mainnet PulseForecast 0xa6EE7846434C385847B4e79EF529531a1124FfF6, 0 console errors; Lighthouse accessibility not measured yet ; Finding: on day one nothing is revealed, so the hero must count tomorrow's locked forecasts or it reads "no forecasts" while one exists; publicnode answers blocks older than about 100,000 with no events instead of an error, and its backends disagree on how far back they keep, while rpc-bsc.48.club keeps all of it with open CORS, so the site reads anything older from it and a 6-hourly workflow publishes the snapshot on the snapshot branch
 
 # P3, Nov 26. Last day with Claude.
 

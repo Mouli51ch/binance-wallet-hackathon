@@ -1,0 +1,16 @@
+{
+  "name": "human-pulse-skill",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Helper for the Kodo agent skill: builds the daily submit() calldata and keeps the salt locally.",
+  "type": "module",
+  "bin": { "pulse": "pulse.mjs" },
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test test/pulse.test.mjs",
+    "test:fork": "node test/fork-e2e.mjs"
+  },
+  "dependencies": {
+    "viem": "2.58.6"
+  }
+}
