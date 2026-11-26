@@ -584,10 +584,10 @@ export function forecastsView(app) {
     const rows = q ? all.filter((r) => addrMatcher(q)(r.voter)) : all
     let full = null
     try { full = q.length === 42 ? getAddress(q.toLowerCase()) : null } catch {}
-    body.replaceChildren(
+    body.replaceChildren(...[
       rows.length ? forecastTable(rows, app.data.today)
         : el('p', { class: 'note' }, q ? 'No forecasts from that address in the last 14 days. Check the address, or make your first forecast.' : 'No forecasts yet. The first one appears here as soon as it is locked.'),
-      full && rows.length ? el('div', { class: 'td-actions' }, link(`#/f/${full}`, "Open this forecaster's record", 'arrow'), meButton(full)) : null)
+      full && rows.length ? el('div', { class: 'td-actions' }, link(`#/f/${full}`, "Open this forecaster's record", 'arrow'), meButton(full)) : null].filter(Boolean))
   }
   draw()
   return el('section', { class: 'view' },
@@ -660,7 +660,7 @@ export function forecast(app) {
   const sync = () => {
     for (const k of ['p10', 'p50', 'p90']) {
       sliders.querySelector(`#s-${k}`).value = band[k]
-      outs[k].replaceChildren(el('b', {}, pct(band[k])), at(band[k]) ? el('span', {}, `about ${at(band[k])}`) : null)
+      outs[k].replaceChildren(...[el('b', {}, pct(band[k])), at(band[k]) ? el('span', {}, `about ${at(band[k])}`) : null].filter(Boolean))
     }
     sentence.textContent = price
       ? `BNB ends ${day} somewhere between ${at(band.p10)} and ${at(band.p90)}, most likely around ${at(band.p50)}.`
