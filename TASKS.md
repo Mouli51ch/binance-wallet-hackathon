@@ -348,13 +348,13 @@ Tick in a `board/` PR as items land.
 # P2, Nov 25. Go/no-go day.
 
 ### T-A05, Final name, mainnet deploy and verify
-- Status: open
+- Status: in-review PR 18 | Owner: Jishnu | Branch: feature/t-a05-mainnet
 - Suggested: Jishnu
 - Depends-on: T-A02, OP-2, OP-3
 - Touches: contracts/script/, deployments/mainnet.json
 - Serves: Completion (judged) ; Pioneer award
 - Acceptance: deployed to BSC mainnet (chain 56) with the real Agent ID contract and the Chainlink BNB/USD feed confirmed in T-F01; source verified on BscScan; address and block in `deployments/mainnet.json`; deploy cost in this row
-- Evidence: <BscScan verified contract link>
+- Evidence: PulseForecast https://bscscan.com/address/0xa6EE7846434C385847B4e79EF529531a1124FfF6 deployed at block 135436524 with the real Agent ID and the Chainlink BNB/USD feed, `exact_match` on Sourcify; startDay 20781 (2026-11-24). Deploy cost 0.000121 BNB at 0.05 gwei. Still open: the final name (OP-2, the contract is named PulseForecast and cannot be renamed without a redeploy) and BscScan verification (OP-8 key)
 
 ### T-J01, First real forecast from an Agentic Wallet
 - Status: open
