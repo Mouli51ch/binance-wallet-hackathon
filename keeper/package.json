@@ -1,0 +1,13 @@
+{
+  "name": "human-pulse-keeper",
+  "private": true,
+  "type": "module",
+  "description": "Settles Human Pulse days against Chainlink and scores holders. Anyone can run it.",
+  "scripts": {
+    "settle": "node settle.mjs",
+    "dry-run": "node settle.mjs --dry-run"
+  },
+  "dependencies": {
+    "viem": "2.21.54"
+  }
+}

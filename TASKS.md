@@ -273,7 +273,7 @@ Tick in a `board/` PR as items land.
 - Finding: a fresh clone has no deployments/ folder (git keeps no empty folders) and Foundry will not create it, so the first real deploy stopped before broadcasting with "not allowed to be accessed for write operations". deployments/.gitkeep fixes it. Found on a local mainnet fork run (deploy script, real Agent ID holder, keeper over two midnights): every number matched a hand calculation.
 
 ### T-A04, Keeper script
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/10 | Owner: Jishnu | Branch: feature/t-a04-keeper
 - Suggested: Jishnu
 - Depends-on: T-F01, T-A03
 - Touches: keeper/, .github/workflows/keeper.yml
