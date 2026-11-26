@@ -1,0 +1,47 @@
+name: snapshot
+
+# Every 6 hours: refresh the contract's event history (web/scripts/snapshot.mjs) and publish it on
+# the `snapshot` branch, which the site reads first, so a visit reads only the last few hours of
+# blocks. Read-only on the chain; no key, no secret. The branch holds 1 commit, replaced each run.
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run snapshot
+        working-directory: web
+        env:
+          SNAPSHOT_BASE: https://raw.githubusercontent.com/${{ github.repository }}/snapshot/snapshot.json
+      - name: Publish on the snapshot branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          dir=$(mktemp -d)
+          cp web/public/snapshot.json "$dir/"
+          cd "$dir"
+          git init -q -b snapshot
+          git add snapshot.json
+          to=$(node -p "require('./snapshot.json').to")
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -qm "snapshot to block $to"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" snapshot
