@@ -395,13 +395,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link>
 
 ### T-D02, HANDOFF.md: running it without Claude
-- Status: claimed 2026-11-26 | Owner: Mouli | Branch: feature/t-d02-handoff
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/40 | Owner: Mouli | Branch: feature/t-d02-handoff
 - Suggested: Jishnu
 - Depends-on: T-A06
 - Touches: docs/HANDOFF.md
 - Serves: unblocks T-D05 ; Completion (judged)
 - Acceptance: exact commands for: run the keeper by hand, redeploy the website, check holder count, top up the keeper wallet; what to do for the 5 most likely failures; a person who did not build it follows it in under 15 minutes
-- Evidence: <PR link>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/40 ; keeper dry run and crowd read run as written; a 15-minute run by someone who did not build it is not done yet ; Finding: the keeper must read logs from an RPC that keeps full history, or a by-hand run after a few missed days silently scores nobody
 
 ### T-D03, Submission text and Agent ID usage description
 - Status: open
