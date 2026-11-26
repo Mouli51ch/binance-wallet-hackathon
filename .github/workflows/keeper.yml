@@ -46,9 +46,14 @@ jobs:
         if: steps.deployed.outputs.yes == 'true'
         env:
           NETWORK: mainnet
-          # A public RPC that serves logs works; a keyed one stays in the secret.
-          RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://bsc-rpc.publicnode.com' }}
+          # The scoring sweep reads Committed events up to 4 days old. publicnode answers blocks older
+          # than about a day with no events (no error), so the default keeps the full history.
+          RPC_URL: ${{ secrets.BSC_RPC_URL || 'https://rpc-bsc.48.club' }}
           KEEPER_PRIVATE_KEY: ${{ secrets.KEEPER_PRIVATE_KEY }}
           DRY: ${{ inputs.dry_run }}
         run: |
-          if [ "$DRY" = "true" ]; then node keeper/settle.mjs --dry-run; else node keeper/settle.mjs; fi
+          if [ "$DRY" = "true" ]; then node keeper/settle.mjs --dry-run
+          elif [ -z "$KEEPER_PRIVATE_KEY" ]; then
+            echo "::warning::No KEEPER_PRIVATE_KEY secret yet (OP-5, OP-6), so this run only plans what it would send."
+            node keeper/settle.mjs --dry-run
+          else node keeper/settle.mjs; fi
