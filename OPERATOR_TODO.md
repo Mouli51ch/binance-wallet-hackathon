@@ -34,12 +34,13 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 - Done when: `gh repo view Mouli51ch/binance-wallet-hackathon --json viewerPermission` shows WRITE for Jishnu.
 
 ### OP-2, Final project name
-- Status: open
+- Status: done
 - Owner: Jishnu, Mouli
 - Needed by: 2026-11-25 (before the mainnet deploy)
 - Unblocks: T-A05
 - What exactly: "Human Pulse" clashes with an existing Solana project. Pick a name that does not use "Binance" or "BNB" as a brand, check it on GitHub, X and a web search, and record it in DECISIONS.md.
 - Done when: a DECISIONS.md row names it.
+- Result: Kodo (site, skill and docs). The contract keeps the name PulseForecast: renaming it means a redeploy.
 
 ### OP-3, An Agentic Wallet with an Agent ID and Developer Mode on
 - Status: open
@@ -50,16 +51,17 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 - Done when: the wallet address is in this entry and `balanceOf` on the Agent ID contract returns 1 for it.
 
 ### OP-4, Deployer wallet funded
-- Status: open
+- Status: done
 - Owner: Jishnu
 - Needed by: 2026-11-24
 - Unblocks: T-A03, T-A05
 - What exactly: a fresh wallet used only for deploys. About 0.01 BNB on BSC mainnet (BEP20 network) plus testnet BNB from the BNB Chain faucet. The key goes in `.env` only.
 - Done when: the address and both balances are in this entry.
+- Result: PulseForecast deployed on BSC mainnet at block 135436524 (deployments/mainnet.json).
 
 ### OP-5, Keeper wallet funded
 - Status: open
-- Owner: Jishnu
+- Owner: Mouli (Jishnu has stopped working on the project, 2026-11-26)
 - Needed by: 2026-11-25
 - Unblocks: T-A06
 - What exactly: a second fresh wallet that only sends `settle` and `score`. About 0.003 BNB on BSC mainnet. Never reuse the deployer.
@@ -67,10 +69,10 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 
 ### OP-6, Keeper key as a GitHub Actions secret
 - Status: open
-- Owner: Mouli
+- Owner: Mouli (Jishnu has stopped working on the project, 2026-11-26)
 - Needed by: 2026-11-25
 - Unblocks: T-A04, T-A06
-- What exactly: repo Settings > Secrets and variables > Actions: add `KEEPER_PRIVATE_KEY` (from OP-5, pasted by Jishnu directly into GitHub, never sent in chat) and `BSC_RPC_URL`.
+- What exactly: repo Settings > Secrets and variables > Actions: add `KEEPER_PRIVATE_KEY` (from OP-5, pasted by Mouli directly into GitHub, never sent in chat). `BSC_RPC_URL` is optional: the workflow defaults to rpc-bsc.48.club, which keeps the full event history.
 - Done when: both secret names show in the repo settings.
 
 ### OP-7, Vercel project
@@ -84,7 +86,7 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 
 ### OP-8, BscScan API key for verification
 - Status: open
-- Owner: Jishnu
+- Owner: Mouli (Jishnu has stopped working on the project, 2026-11-26)
 - Needed by: 2026-11-24
 - Unblocks: T-A03, T-A05
 - What exactly: free Etherscan v2 API key (covers BscScan), stored in `.env` as `ETHERSCAN_API_KEY`.
@@ -100,7 +102,7 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 
 ### OP-10, When does Claude access end on Nov 26?
 - Status: open
-- Owner: Jishnu
+- Owner: Mouli (Jishnu has stopped working on the project, 2026-11-26)
 - Needed by: 2026-11-24
 - Unblocks: T-D01, T-D02
 - What exactly: confirm the exact end time so P3 work is scheduled before it.
