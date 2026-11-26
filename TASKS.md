@@ -214,13 +214,13 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link with hygiene, checks and secrets green>
 
 ### T-A01, PulseForecast contract and unit tests
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/6 | Owner: Jishnu | Branch: feature/t-a01-contract
+- Status: done
 - Suggested: Jishnu
 - Depends-on: T-A00
 - Touches: contracts/ (except contracts/test/fork/ and contracts/script/)
 - Serves: Agent ID depth (judged) ; Completion (judged)
 - Acceptance: `commit`, `reveal`, `submit`, `settle`, `score` and all views as in `docs/ARCHITECTURE.md` section 5; no owner, no `payable`, no loops; at least 15 unit tests with a mock Agent ID and a mock Chainlink feed covering: non-holder refused, double commit refused, reveal outside its day or with a wrong salt refused, p10 > p50 refused, out-of-range refused, wrong or stale round refused, pinball loss for 3 known cases, baseline sigma update, crowd band average, unrevealed penalty, void day, one-tx `submit`; `forge test` green
-- Evidence: <PR link, forge test output summary>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/6 ; 35 of 35 unit tests pass on main (forge test, 2026-11-26); contracts/src/PulseForecast.sol is byte-identical to the mainnet contract's `exact_match` source on Sourcify
 
 ### T-F02, Agentic Wallet Developer Mode: exact commands and limits
 - Status: done
@@ -244,7 +244,7 @@ Tick in a `board/` PR as items land.
 # P1, Nov 24
 
 ### T-A02, Fork tests and gas
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/9 | Owner: Jishnu | Branch: feature/t-a02-fork-tests
+- Status: done
 - Suggested: Jishnu
 - Depends-on: T-A01
 - Touches: contracts/test/fork/
@@ -253,7 +253,7 @@ Tick in a `board/` PR as items land.
 - Evidence: PR 9, 5 of 5 fork tests pass at block 135411040. Gas (execution): submit reveal + commit + score 129,984, reveal + commit 101,613, first commit 53,841, settle 148,086; about 155k per daily tx in full, about $0.004 at 0.05 gwei
 
 ### T-F01, Chainlink BNB/USD round at a day boundary
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/8 | Owner: Jishnu | Branch: feature/t-f01-chainlink-boundary
+- Status: done
 - Suggested: Jishnu
 - Depends-on: T-A00
 - Touches: spikes/F1/
@@ -263,7 +263,7 @@ Tick in a `board/` PR as items land.
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
-- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a03-deploy
+- Status: blocked, see OP-8
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
 - Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
@@ -273,13 +273,13 @@ Tick in a `board/` PR as items land.
 - Finding: a fresh clone has no deployments/ folder (git keeps no empty folders) and Foundry will not create it, so the first real deploy stopped before broadcasting with "not allowed to be accessed for write operations". deployments/.gitkeep fixes it. Found on a local mainnet fork run (deploy script, real Agent ID holder, keeper over two midnights): every number matched a hand calculation.
 
 ### T-A04, Keeper script
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/10 | Owner: Jishnu | Branch: feature/t-a04-keeper
+- Status: blocked, see OP-6
 - Suggested: Jishnu
 - Depends-on: T-F01, T-A03
 - Touches: keeper/, .github/workflows/keeper.yml
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: `node keeper/settle.mjs` finds yesterday's boundary round and calls `settle`, then `score` for unscored holders; dry-run mode sends 0 transactions; a GitHub Actions cron at 00:05 UTC runs it with the key from a repo secret (OP-6); 1 successful testnet run
-- Evidence: <Actions run link, tx hash>
+- Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/10 ; Actions dry run https://github.com/Mouli51ch/binance-wallet-hackathon/actions/runs/45805934175 plans settle(20780, 55340232221132271700) on mainnet and sends nothing; without the KEEPER_PRIVATE_KEY secret the daily run only plans ; Finding: publicnode returns no events for blocks older than about a day, so the scoring sweep (commits up to 4 days old) defaults to rpc-bsc.48.club
 
 ### T-A07, Local mainnet-fork end-to-end
 - Status: done
@@ -348,7 +348,7 @@ Tick in a `board/` PR as items land.
 # P2, Nov 25. Go/no-go day.
 
 ### T-A05, Final name, mainnet deploy and verify
-- Status: in-review PR 18 | Owner: Jishnu | Branch: feature/t-a05-mainnet
+- Status: blocked, see OP-8
 - Suggested: Jishnu
 - Depends-on: T-A02, OP-2, OP-3
 - Touches: contracts/script/, deployments/mainnet.json
@@ -366,7 +366,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <BscScan tx links, recording>
 
 ### T-A06, Keeper live on mainnet
-- Status: open
+- Status: blocked, see OP-6
 - Suggested: Jishnu
 - Depends-on: T-A04, T-A05, OP-5, OP-6
 - Touches: .github/workflows/keeper.yml, keeper/
@@ -386,7 +386,7 @@ Tick in a `board/` PR as items land.
 # P3, Nov 26. Last day with Claude.
 
 ### T-D01, README
-- Status: open
+- Status: claimed 2026-11-26 | Owner: Mouli | Branch: feature/t-d01-readme
 - Suggested: Jishnu
 - Depends-on: T-A05
 - Touches: README.md
@@ -395,7 +395,7 @@ Tick in a `board/` PR as items land.
 - Evidence: <PR link>
 
 ### T-D02, HANDOFF.md: running it without Claude
-- Status: open
+- Status: claimed 2026-11-26 | Owner: Mouli | Branch: feature/t-d02-handoff
 - Suggested: Jishnu
 - Depends-on: T-A06
 - Touches: docs/HANDOFF.md
