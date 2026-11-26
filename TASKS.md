@@ -238,7 +238,7 @@ Tick in a `board/` PR as items land.
 - Depends-on: T-A00
 - Touches: web/
 - Serves: Completion (judged) ; Practicality (judged)
-- Acceptance: Vite + viem static site with 5 sections from `docs/ARCHITECTURE.md` section 7 (today, yesterday, leaderboard, how to join, footer with risk warning) rendering from a mock data file; 0 wallet-connect code; 0 `name.ai` names; addresses shortened; works at 375 px wide; `npm run build` passes
+- Acceptance: Vite + viem static site with 5 sections from `docs/ARCHITECTURE.md` section 7 (today, yesterday, leaderboard, how to join, footer with risk warning) rendering from a mock data file; every leaderboard row shows the holder's missed reveals next to their score (DECISIONS.md, 2026-11-24); 0 wallet-connect code; 0 `name.ai` names; addresses shortened; works at 375 px wide; `npm run build` passes
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/5 ; Finding: 5 sections render from sample data; page is 375 px wide at 375 px with no sideways scroll; build runs 3 model tests then builds in about 0.2 s; Vite drops the 3 classic scripts from dist unless copied, so vite.config.js copies them; loss unit assumed bps, T-B02 must confirm
 
 # P1, Nov 24
