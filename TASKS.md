@@ -290,7 +290,7 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/13 ; Finding: submit (reveal + commit + score) costs 123,594 gas median, 174,707 max on the fork; 5 real holders x 5 scored days; fresh address refused; settles on real Chainlink rounds replayed with whole-day shifts
 
 ### T-A08, Live-contract fork end-to-end with the real skill
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/28 | Owner: Mouli | Branch: feature/t-a08-live-fork
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-A05, T-C01, T-A07
 - Touches: fork/, deployments/fork.json
@@ -317,7 +317,7 @@ Tick in a `board/` PR as items land.
 - Evidence: https://github.com/Mouli51ch/binance-wallet-hackathon/pull/20 ; commit hash matches the deployed mainnet contract on 2 vectors; mainnet-fork end to end against the deployed bytecode (no testnet key here, so no testnet tx) ; Finding: commit costs 77,451 gas and reveal plus commit 135,242; a commit confirmed after 00:00 UTC is filed for the wrong day and can never be revealed, so prepare prints sendBefore and refuses in the last 10 minutes
 
 ### T-C02, Skill read mode: anyone asks what the crowd expects
-- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/29 | Owner: Mouli | Branch: feature/t-c02-skill-read
+- Status: done
 - Suggested: Mouli
 - Depends-on: T-C01, T-A05
 - Touches: skills/human-pulse/
@@ -377,7 +377,7 @@ Tick in a `board/` PR as items land.
 - Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/35 | Owner: Mouli | Branch: feature/t-b03-mainnet-site
 - Suggested: Mouli
 - Depends-on: T-B02, T-A05, OP-7
-- Touches: web/, vercel.json
+- Touches: web/, vercel.json, .github/workflows/snapshot.yml
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: public Vercel URL shows mainnet data with the crowd band as the hero; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
 - Evidence: https://kodo-forecast.vercel.app reads mainnet PulseForecast 0xa6EE7846434C385847B4e79EF529531a1124FfF6, 0 console errors; Lighthouse accessibility not measured yet ; Finding: on day one nothing is revealed, so the hero must count tomorrow's locked forecasts or it reads "no forecasts" while one exists; publicnode answers blocks older than about 100,000 with no events instead of an error, and its backends disagree on how far back they keep, while rpc-bsc.48.club keeps all of it with open CORS, so the site reads anything older from it and a 6-hourly workflow publishes the snapshot on the snapshot branch
