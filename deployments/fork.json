@@ -1,0 +1,8 @@
+{
+  "network": "fork",
+  "chainId": 56,
+  "rpc": "http://127.0.0.1:8547",
+  "address": "0xa6EE7846434C385847B4e79EF529531a1124FfF6",
+  "deployBlock": 135436524,
+  "note": "Local anvil fork of BSC mainnet running the deployed PulseForecast. The Chainlink feed is a test feed with made-up moves; the holders are real Agent ID holders impersonated on the fork only."
+}

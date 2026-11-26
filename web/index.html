@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Human Pulse: daily BNB forecasts from verified humans</title>
+<title>Kodo: daily BNB forecasts from verified humans</title>
 <meta name="description" content="One forecast per Binance Agent ID per day: a low, middle and high for BNB, sent by your agent and scored on-chain against Chainlink at 00:00 UTC.">
-<meta property="og:title" content="Human Pulse: daily BNB forecasts from verified humans">
+<meta property="og:title" content="Kodo: daily BNB forecasts from verified humans">
 <meta property="og:description" content="A crowd forecast bots cannot fake: one forecast per Agent ID, scored on-chain against Chainlink.">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -22,11 +22,13 @@
 <nav class="topbar" aria-label="Main">
   <div class="topbar__in">
     <i class="cnr tl" aria-hidden="true"></i><i class="cnr tr" aria-hidden="true"></i><i class="cnr bl" aria-hidden="true"></i><i class="cnr br" aria-hidden="true"></i>
-    <a class="wordmark" href="#top">human pulse<i>.</i></a>
+    <a class="wordmark" href="#top">kodo<i>.</i></a>
     <div class="topbar__links">
+      <a href="#today">Today</a>
+      <a href="#yesterday">Yesterday</a>
+      <a href="#board">Leaderboard</a>
       <a href="#how">How it works</a>
-      <a href="#forecast">Forecast</a>
-      <a href="#rules">Rules</a>
+      <a href="app.html" class="topbar__app">Open the app</a>
     </div>
     <a class="topbar__cta" href="#join"><span class="led" aria-hidden="true"></span>Join the daily forecast</a>
   </div>
@@ -36,15 +38,36 @@
 <div class="vrules" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 <main>
   <section class="grid-layout hero" id="top">
-    <div class="eyebrow"><span>Human Pulse: daily BNB forecast</span><hr class="rule" data-line><span>Nov 2026</span></div>
+    <div class="eyebrow"><span>Kodo: daily BNB forecast</span><hr class="rule" data-line><span>Nov 2026</span></div>
     <article>
       <div class="framed"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><h1 class="f-h0" data-ps>A daily BNB forecast that only verified humans can make</h1></div>
       <div class="framed lede"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><p class="f-h4" data-ps>One forecast per Binance Agent ID per day. Your agent sends a low, a middle and a high for tomorrow's BNB price, and at 00:00 UTC the contract scores it on-chain against Chainlink.</p></div>
+      <p class="hero__band" id="hero-band" aria-live="polite"></p>
       <div class="hero__actions">
         <a class="framed label act act--on" href="#join"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>Join the daily forecast</span></a>
-        <a class="framed label act" href="#forecast"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>See how scoring works</span></a>
+        <a class="framed label act" href="app.html"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>Open the app</span></a>
+        <a class="framed label act" href="app.html#/forecast"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><span data-ps>Try a forecast</span></a>
       </div>
     </article>
+    <div class="framed crt-monitor" aria-hidden="true"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i><div class="shader-frame" id="hero-crt"></div></div>
+  </section>
+
+  <section class="grid-layout caps" id="today">
+    <h2 class="f-h3">Today</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--two" id="today-data"><p class="sheet__note">Loading today's forecast. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
+  </section>
+
+  <section class="grid-layout caps" id="yesterday">
+    <h2 class="f-h3">Yesterday</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--two" id="yesterday-data"><p class="sheet__note">Loading yesterday's result. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
+  </section>
+
+  <section class="grid-layout caps" id="board">
+    <h2 class="f-h3">Leaderboard</h2>
+    <hr class="rule topline" data-line>
+    <div class="cols"><div class="inner inner--one" id="board-data"><p class="sheet__note">Loading the leaderboard. If this stays, JavaScript is off or blocked: turn it on to see the live numbers.</p></div></div>
   </section>
 
   <section class="grid-layout caps" id="how">
@@ -130,28 +153,38 @@ loss   = loss_0.1 + loss_0.5 + loss_0.9</pre>
       <ol class="steps">
         <li data-ps><b>Claim an Agent ID</b> in the Binance App, from the banner in Wallet.</li>
         <li data-ps><b>Turn on Developer Mode</b> for your Agentic Wallet. Your agent cannot do this for you.</li>
-        <li data-ps><b>Add the Human Pulse skill</b> to your agent.</li>
+        <li data-ps><b>Add the Kodo skill</b> to an agent that can run commands on your computer, like Claude Code. Phone chat apps cannot send it.</li>
         <li data-ps><b>Ask for today's forecast,</b> read the preview, confirm it in Binance.</li>
       </ol>
       <div class="prompt">
-        <code id="prompt-text" data-ps><span class="dim">you@agent:~$</span> Make my daily BNB forecast with the Human Pulse skill.</code>
-        <button type="button" class="copy" data-copy="#prompt-text">Copy the prompt</button>
+        <code id="install-text" data-ps><span class="dim">1. add the skill:</span> Install the Kodo skill: copy the folder skills/human-pulse from https://github.com/Mouli51ch/binance-wallet-hackathon into ~/.claude/skills/human-pulse, then run npm install inside it.</code>
+        <button type="button" class="copy" data-copy="#install-text">Copy</button>
       </div>
-      <p class="join__repo" data-ps><a href="https://github.com/Mouli51ch/binance-wallet-hackathon">Get the agent skill on GitHub</a></p>
+      <div class="prompt prompt--2">
+        <code id="ask-text" data-ps><span class="dim">2. just curious? ask:</span> What does the Kodo crowd expect for BNB today?</code>
+        <button type="button" class="copy" data-copy="#ask-text">Copy</button>
+      </div>
+      <div class="prompt prompt--3">
+        <code id="prompt-text" data-ps><span class="dim">3. have an Agent ID? forecast:</span> Make my daily BNB forecast with the Kodo skill.</code>
+        <button type="button" class="copy" data-copy="#prompt-text">Copy</button>
+      </div>
+      <p class="join__repo" data-ps><a href="https://github.com/Mouli51ch/binance-wallet-hackathon/tree/main/skills/human-pulse">See the Kodo skill on GitHub</a></p>
     </div>
   </section>
 </main>
 
 <footer class="foot grid-layout">
   <hr class="rule" data-line>
-  <p class="wordmark wordmark--big">human pulse<i>.</i></p>
+  <p class="wordmark wordmark--big">kodo<i>.</i></p>
   <p class="foot__risk">Forecasting signal only. Not financial advice. No returns are promised.</p>
-  <p class="foot__legal">© 2026 Human Pulse. Price data from Chainlink on BNB Smart Chain. Agent ID is a Binance Wallet product; this project is independent of Binance. Particle scroll and layout system from ThreeUI.</p>
+  <p class="foot__legal" id="contract-line">Contract: not deployed yet.</p>
+  <p class="foot__legal">© 2026 Kodo. Price data from Chainlink on BNB Smart Chain. Agent ID is a Binance Wallet product; this project is independent of Binance. Particle scroll and layout system from ThreeUI.</p>
 </footer>
 </div>
 
-<script src="vendor/particle-scroll.js"></script>
+
 <script src="src/sublevel-fx.js"></script>
 <script src="src/page.js"></script>
+<script type="module" src="src/main.js"></script>
 </body>
 </html>

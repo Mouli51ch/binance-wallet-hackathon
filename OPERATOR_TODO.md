@@ -74,12 +74,13 @@ Status values: `open` | `claimed <date> | Owner: <name>` | `done <date>: <result
 - Done when: both secret names show in the repo settings.
 
 ### OP-7, Vercel project
-- Status: open
+- Status: done
 - Owner: Mouli
 - Needed by: 2026-11-25
 - Unblocks: T-B03
 - What exactly: log in to Vercel, import the repo with root `web/`, note the project URL.
 - Done when: the URL is in this entry.
+- Result: https://kodo-forecast.vercel.app (Vercel project "kodo", deployed from web/ with a prebuilt output)
 
 ### OP-8, BscScan API key for verification
 - Status: open
