@@ -380,7 +380,7 @@ Tick in a `board/` PR as items land.
 - Touches: web/, vercel.json
 - Serves: Completion (judged) ; Practicality (judged)
 - Acceptance: public Vercel URL shows mainnet data with the crowd band as the hero; risk warning visible; Lighthouse accessibility 90 or more; 0 console errors
-- Evidence: https://kodo-forecast.vercel.app reads mainnet PulseForecast 0xa6EE7846434C385847B4e79EF529531a1124FfF6, 0 console errors; Lighthouse accessibility not measured yet ; Finding: on day one nothing is revealed, so the hero must count tomorrow's locked forecasts or it reads "no forecasts" while one exists
+- Evidence: https://kodo-forecast.vercel.app reads mainnet PulseForecast 0xa6EE7846434C385847B4e79EF529531a1124FfF6, 0 console errors; Lighthouse accessibility not measured yet ; Finding: on day one nothing is revealed, so the hero must count tomorrow's locked forecasts or it reads "no forecasts" while one exists; publicnode answers blocks older than about 100,000 with no events instead of an error, and its backends disagree on how far back they keep, while rpc-bsc.48.club keeps all of it with open CORS, so the site reads anything older from it and a 6-hourly workflow publishes the snapshot on the snapshot branch
 
 # P3, Nov 26. Last day with Claude.
 

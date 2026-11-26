@@ -2,16 +2,17 @@
 // visitor reads only the blocks after this snapshot (T-B03). Run before each deploy:
 // `npm run snapshot`. Read-only; the site works without the file.
 //
-// Free public BSC RPCs keep event history for only about a day (publicnode: about 100,000
-// blocks; checked 2026-11-25), so a snapshot can never be rebuilt from scratch later. This script
-// therefore starts from the previous snapshot (the local file, else the live site's) and only adds
-// new events, and it fails loudly when the gap since the previous snapshot can no longer be read.
+// Most free public BSC RPCs keep event history for only about a day (publicnode: about 100,000
+// blocks; checked 2026-11-25) and answer older blocks with no events instead of an error.
+// rpc-bsc.48.club keeps all of it (checked 2026-11-26), so it is the default here. The script
+// starts from the previous snapshot (the local file, else the live site's), adds only new events,
+// and fails loudly when the RPC it uses has pruned the blocks it needs.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createPublicClient, http } from 'viem'
 import { mergeLogs, packLogs, readLogs, unpackLogs } from '../src/chain.js'
 
 const LIVE = process.env.SNAPSHOT_BASE ?? 'https://kodo-forecast.vercel.app/snapshot.json'
-const RPC_HISTORY = 100000n // blocks of event history the public RPC still serves
+const RPC_HISTORY = 100000n // blocks of event history a pruning public RPC still serves
 const REORG = 30n
 const dep = JSON.parse(readFileSync(new URL('../../deployments/mainnet.json', import.meta.url), 'utf8'))
 const address = dep.address ?? dep.PulseForecast
@@ -24,14 +25,14 @@ const local = existsSync(out) ? parse(JSON.parse(readFileSync(out, 'utf8'))) : n
 const live = await fetch(`${LIVE}?c=${Date.now()}`).then((r) => (r.ok ? r.json() : null)).then(parse).catch(() => null)
 const base = [local, live].filter((b) => b && b.from <= deployBlock).sort((a, b) => (a.to > b.to ? -1 : 1))[0]
 
-const client = createPublicClient({ transport: http(process.env.BSC_RPC_URL ?? 'https://bsc-rpc.publicnode.com', { retryCount: 3, timeout: 30000 }) })
+const client = createPublicClient({ transport: http(process.env.BSC_RPC_URL ?? 'https://rpc-bsc.48.club', { retryCount: 3, timeout: 30000 }) })
 const t = Date.now()
 const head = await client.getBlockNumber()
 const start = base ? (base.to - REORG > deployBlock ? base.to - REORG : deployBlock) : deployBlock
-if (head - start > RPC_HISTORY) {
-  console.error(`snapshot: blocks ${start} to ${head - RPC_HISTORY} are older than the public RPC keeps, so events in them cannot be read any more.` +
-    (base ? ' The previous snapshot is too old: refresh the snapshot at least once a day.' : ' No previous snapshot was found: get the live site\'s snapshot.json into web/public first.') +
-    ' Nothing was written.')
+// every BSC block has some event, so an RPC that returns none for the oldest block needed has pruned it
+if (head - start > RPC_HISTORY && (await client.getLogs({ fromBlock: start, toBlock: start })).length === 0) {
+  console.error(`snapshot: the RPC returns no events for block ${start}, so it has pruned the history this snapshot needs. ` +
+    'Set BSC_RPC_URL to an RPC that keeps the full event history (rpc-bsc.48.club does) and run it again. Nothing was written.')
   process.exit(1)
 }
 const fresh = await readLogs(client, address, start, head)
