@@ -244,13 +244,13 @@ Tick in a `board/` PR as items land.
 # P1, Nov 24
 
 ### T-A02, Fork tests and gas
-- Status: open
+- Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/9 | Owner: Jishnu | Branch: feature/t-a02-fork-tests
 - Suggested: Jishnu
 - Depends-on: T-A01
 - Touches: contracts/test/fork/
 - Serves: Agent ID depth (judged) ; cost metric
 - Acceptance: on a BSC mainnet fork, 1 real Agent ID holder address (found from the Agent ID contract's Transfer events) can `commit` via `vm.prank` and 1 fresh address is refused; `settle` succeeds with a real historical Chainlink round at a real 00:00 UTC boundary; gas for `submit` (reveal + commit + score) measured and written in this row
-- Evidence: <PR link, gas numbers>
+- Evidence: PR 9, 5 of 5 fork tests pass at block 135411040. Gas (execution): submit reveal + commit + score 129,984, reveal + commit 101,613, first commit 53,841, settle 148,086; about 155k per daily tx in full, about $0.004 at 0.05 gwei
 
 ### T-F01, Chainlink BNB/USD round at a day boundary
 - Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/8 | Owner: Jishnu | Branch: feature/t-f01-chainlink-boundary
@@ -263,13 +263,14 @@ Tick in a `board/` PR as items land.
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a03-deploy
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
-- Touches: contracts/script/, deployments/testnet.json
+- Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
 - Serves: Completion (judged) ; unblocks T-B02
 - Acceptance: `forge script` deploys to BSC testnet (chain 97) with a mock Agent ID and a testnet price feed, then verifies on testnet BscScan; the address and block are in `deployments/testnet.json`; 1 full day cycle (commit, reveal, settle, score) run on testnet
-- Evidence: <testnet BscScan links>
+- Evidence: PulseForecast https://testnet.bscscan.com/address/0xE13d254A2195fdef7B83EC9Df940854B83aA3042 and MockAgentId 0xa6EE7846434C385847B4e79EF529531a1124FfF6 (block 144569571), both `exact_match` on Sourcify (BscScan verify waits on OP-8). Day cycle: keeper settled 2026-11-24 00:00 (tx 0x830521455fc7519f6c9319bc97e34007e5b9626ba9319b95d11620bd48b61d4e), commit for day 20782 (tx 0xd5fdf8645573a089c8c6fd79a7a2430cbac79b2313b6bb34d47e69dd609ec4ca); reveal on 2026-11-25 UTC, settle and score after 2026-11-26 00:00 UTC still to run
+- Finding: a fresh clone has no deployments/ folder (git keeps no empty folders) and Foundry will not create it, so the first real deploy stopped before broadcasting with "not allowed to be accessed for write operations". deployments/.gitkeep fixes it. Found on a local mainnet fork run (deploy script, real Agent ID holder, keeper over two midnights): every number matched a hand calculation.
 
 ### T-A04, Keeper script
 - Status: in-review https://github.com/Mouli51ch/binance-wallet-hackathon/pull/10 | Owner: Jishnu | Branch: feature/t-a04-keeper
@@ -347,13 +348,13 @@ Tick in a `board/` PR as items land.
 # P2, Nov 25. Go/no-go day.
 
 ### T-A05, Final name, mainnet deploy and verify
-- Status: open
+- Status: in-review PR 18 | Owner: Jishnu | Branch: feature/t-a05-mainnet
 - Suggested: Jishnu
 - Depends-on: T-A02, OP-2, OP-3
 - Touches: contracts/script/, deployments/mainnet.json
 - Serves: Completion (judged) ; Pioneer award
 - Acceptance: deployed to BSC mainnet (chain 56) with the real Agent ID contract and the Chainlink BNB/USD feed confirmed in T-F01; source verified on BscScan; address and block in `deployments/mainnet.json`; deploy cost in this row
-- Evidence: <BscScan verified contract link>
+- Evidence: PulseForecast https://bscscan.com/address/0xa6EE7846434C385847B4e79EF529531a1124FfF6 deployed at block 135436524 with the real Agent ID and the Chainlink BNB/USD feed, `exact_match` on Sourcify; startDay 20781 (2026-11-24). Deploy cost 0.000121 BNB at 0.05 gwei. Still open: the final name (OP-2, the contract is named PulseForecast and cannot be renamed without a redeploy) and BscScan verification (OP-8 key)
 
 ### T-J01, First real forecast from an Agentic Wallet
 - Status: open
