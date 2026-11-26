@@ -154,6 +154,15 @@ export async function readLogs(client, address, from, to, parallel = LOG_PARALLE
   return logs
 }
 
+// Old blocks from the full-history RPC; on a failure it tries once more, slower, then names the cause.
+async function readHistory(cfg, from, to) {
+  const c = createPublicClient({ transport: http(cfg.historyRpc, { retryCount: 3, timeout: 30000 }) })
+  try { return await readLogs(c, cfg.address, from, to, HISTORY_PARALLEL) } catch {}
+  try { return await readLogs(c, cfg.address, from, to, 2) } catch (e) {
+    throw new Error(`Event history older than about a day could not be read from ${new URL(cfg.historyRpc).host} (${e.shortMessage ?? e.message}). Reload in a minute.`)
+  }
+}
+
 async function scanEvents(client, cfg) {
   const snap = readSnapshot(cfg) // in parallel with the block reads below
   const [head, number] = await Promise.all([client.getBlock(), client.getBlockNumber()])
@@ -162,14 +171,14 @@ async function scanEvents(client, cfg) {
   const windowStart = head.number - perDay * LOOKBACK_DAYS
   const from = BigInt(cfg.deployBlock) > windowStart ? BigInt(cfg.deployBlock) : windowStart
   // the newest stored copy that reaches back to the window's start
-  const copies = [readStored(cfg), await snap].filter((c) => c && c.from <= from && c.to <= head.number)
+  const copies = [readStored(cfg), await snap].filter((c) => c && c.from <= from && c.to <= head.number + 1000n) // a copy built on another RPC may be a few blocks ahead
   const best = copies.sort((a, b) => (a.to > b.to ? -1 : 1))[0]
   const start = best && best.to - REORG > from ? best.to - REORG : from
   // The main RPC answers pruned blocks (older than about a day) with no events instead of an error,
   // so blocks older than RECENT come from an RPC that keeps the full history (slower, CORS open).
   const split = cfg.historyRpc && head.number - start > RECENT ? head.number - RECENT : start - 1n
   const [old, recent] = await Promise.all([
-    split >= start ? readLogs(createPublicClient({ transport: http(cfg.historyRpc, { retryCount: 3, timeout: 30000 }) }), cfg.address, start, split, HISTORY_PARALLEL) : [],
+    split >= start ? readHistory(cfg, start, split) : [],
     readLogs(client, cfg.address, split + 1n, head.number),
   ])
   const fresh = [...old, ...recent]
