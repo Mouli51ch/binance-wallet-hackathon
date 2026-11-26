@@ -10,6 +10,8 @@ const RPC = {
   testnet: 'https://bsc-testnet-rpc.publicnode.com',
   mainnet: 'https://bsc-rpc.publicnode.com',
 }
+// publicnode keeps only about a day of event history; 48.club keeps all of it (checked 2026-11-26)
+const HISTORY_RPC = { mainnet: 'https://rpc-bsc.48.club' }
 
 const files = import.meta.glob('../../deployments/*.json', { eager: true, import: 'default' })
 
@@ -27,5 +29,5 @@ export function siteConfig() {
   if (!Number.isSafeInteger(deployBlock) || deployBlock <= 0) {
     throw new Error(`deployments/${network}.json has no deployBlock. Add the contract's deploy block number so the site does not scan the chain from genesis.`)
   }
-  return { network, address, deployBlock, rpc: dep.rpc ?? RPC[network] }
+  return { network, address, deployBlock, rpc: dep.rpc ?? RPC[network], historyRpc: dep.rpc ? undefined : HISTORY_RPC[network] }
 }

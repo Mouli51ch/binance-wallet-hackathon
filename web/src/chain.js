@@ -107,41 +107,60 @@ export function mergeLogs(sets, from) {
   return [...m.values()].sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1))
 }
 
+const HISTORY_PARALLEL = 8 // 48.club times out on 32 at once
+const RECENT = 90000n // blocks the main public RPC still has events for (publicnode keeps about 100,000)
 const REORG = 30n // re-read the last few blocks of any stored copy, in case they changed
 const cacheKey = (cfg) => `kodo:logs:${cfg.network}:${String(cfg.address).toLowerCase()}`
+// v2: drops copies made from the hand-recovered snapshot of 2026-11-25 (wrong log index)
 // a fork is a fresh chain on every run at the same address, so its history is never stored
 function readStored(cfg) {
   if (cfg.network === 'fork') return null
   try {
     const c = JSON.parse(localStorage.getItem(cacheKey(cfg)))
-    return c?.v === 1 ? { from: BigInt(c.from), to: BigInt(c.to), logs: unpackLogs(c.logs) } : null
+    return c?.v === 2 ? { from: BigInt(c.from), to: BigInt(c.to), logs: unpackLogs(c.logs) } : null
   } catch { return null }
 }
 function writeStored(cfg, from, to, logs) {
   if (cfg.network === 'fork') return
-  try { localStorage.setItem(cacheKey(cfg), JSON.stringify({ v: 1, from: String(from), to: String(to), logs: packLogs(logs) })) } catch {}
+  try { localStorage.setItem(cacheKey(cfg), JSON.stringify({ v: 2, from: String(from), to: String(to), logs: packLogs(logs) })) } catch {}
 }
+// The copy deployed with the site, and a fresher one the snapshot workflow publishes every 6 hours
+// on the repo's `snapshot` branch (.github/workflows/snapshot.yml). The newest one wins.
+const SNAPSHOTS = ['snapshot.json', 'https://raw.githubusercontent.com/Mouli51ch/binance-wallet-hackathon/snapshot/snapshot.json']
 async function readSnapshot(cfg) {
   if (cfg.network !== 'mainnet' || typeof fetch !== 'function' || typeof location === 'undefined') return null
-  try {
-    const r = await fetch(new URL('snapshot.json', location.href), { cache: 'no-cache' })
-    if (!r.ok) return null
-    const s = await r.json()
-    if (String(s.address).toLowerCase() !== String(cfg.address).toLowerCase()) return null
-    return { from: BigInt(s.from), to: BigInt(s.to), logs: unpackLogs(s.logs) }
-  } catch { return null }
+  const one = async (url) => {
+    try {
+      const r = await fetch(new URL(url, location.href), { cache: 'no-cache' })
+      if (!r.ok) return null
+      const s = await r.json()
+      if (String(s.address).toLowerCase() !== String(cfg.address).toLowerCase()) return null
+      return { from: BigInt(s.from), to: BigInt(s.to), logs: unpackLogs(s.logs) }
+    } catch { return null }
+  }
+  const all = (await Promise.all(SNAPSHOTS.map(one))).filter(Boolean)
+  return all.sort((a, b) => (a.to > b.to ? -1 : 1))[0] ?? null
 }
 
 /** Reads logs from `from` to `to` in LOG_SPAN chunks, LOG_PARALLEL at a time. */
-export async function readLogs(client, address, from, to) {
+export async function readLogs(client, address, from, to, parallel = LOG_PARALLEL) {
   const spans = []
   for (let f = from; f <= to; f += LOG_SPAN) spans.push([f, f + LOG_SPAN - 1n < to ? f + LOG_SPAN - 1n : to])
   const logs = []
-  for (let i = 0; i < spans.length; i += LOG_PARALLEL) {
-    const batch = await Promise.all(spans.slice(i, i + LOG_PARALLEL).map(([f, t]) => client.getLogs({ address, events: EVENTS, fromBlock: f, toBlock: t })))
+  for (let i = 0; i < spans.length; i += parallel) {
+    const batch = await Promise.all(spans.slice(i, i + parallel).map(([f, t]) => client.getLogs({ address, events: EVENTS, fromBlock: f, toBlock: t })))
     logs.push(...batch.flat())
   }
   return logs
+}
+
+// Old blocks from the full-history RPC; on a failure it tries once more, slower, then names the cause.
+async function readHistory(cfg, from, to) {
+  const c = createPublicClient({ transport: http(cfg.historyRpc, { retryCount: 3, timeout: 30000 }) })
+  try { return await readLogs(c, cfg.address, from, to, HISTORY_PARALLEL) } catch {}
+  try { return await readLogs(c, cfg.address, from, to, 2) } catch (e) {
+    throw new Error(`Event history older than about a day could not be read from ${new URL(cfg.historyRpc).host} (${e.shortMessage ?? e.message}). Reload in a minute.`)
+  }
 }
 
 async function scanEvents(client, cfg) {
@@ -152,10 +171,17 @@ async function scanEvents(client, cfg) {
   const windowStart = head.number - perDay * LOOKBACK_DAYS
   const from = BigInt(cfg.deployBlock) > windowStart ? BigInt(cfg.deployBlock) : windowStart
   // the newest stored copy that reaches back to the window's start
-  const copies = [readStored(cfg), await snap].filter((c) => c && c.from <= from && c.to <= head.number)
+  const copies = [readStored(cfg), await snap].filter((c) => c && c.from <= from && c.to <= head.number + 1000n) // a copy built on another RPC may be a few blocks ahead
   const best = copies.sort((a, b) => (a.to > b.to ? -1 : 1))[0]
   const start = best && best.to - REORG > from ? best.to - REORG : from
-  const fresh = await readLogs(client, cfg.address, start, head.number)
+  // The main RPC answers pruned blocks (older than about a day) with no events instead of an error,
+  // so blocks older than RECENT come from an RPC that keeps the full history (slower, CORS open).
+  const split = cfg.historyRpc && head.number - start > RECENT ? head.number - RECENT : start - 1n
+  const [old, recent] = await Promise.all([
+    split >= start ? readHistory(cfg, start, split) : [],
+    readLogs(client, cfg.address, split + 1n, head.number),
+  ])
+  const fresh = [...old, ...recent]
   const logs = mergeLogs([...(best ? [best.logs.filter((l) => l.blockNumber < start)] : []), fresh], from)
   writeStored(cfg, from, head.number, logs)
   return { logs, head }
