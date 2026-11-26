@@ -263,13 +263,14 @@ Tick in a `board/` PR as items land.
 - Kill criterion: rounds older than 2 hours at a boundary on 2 of 7 days, so settle with the first round after midnight instead and record the decision in DECISIONS.md
 
 ### T-A03, Deploy script and testnet deploy
-- Status: open
+- Status: claimed 2026-11-24 | Owner: Jishnu | Branch: feature/t-a03-deploy
 - Suggested: Jishnu
 - Depends-on: T-A01, OP-4
-- Touches: contracts/script/, deployments/testnet.json
+- Touches: contracts/script/, contracts/foundry.toml, deployments/.gitkeep, deployments/testnet.json
 - Serves: Completion (judged) ; unblocks T-B02
 - Acceptance: `forge script` deploys to BSC testnet (chain 97) with a mock Agent ID and a testnet price feed, then verifies on testnet BscScan; the address and block are in `deployments/testnet.json`; 1 full day cycle (commit, reveal, settle, score) run on testnet
-- Evidence: <testnet BscScan links>
+- Evidence: PulseForecast https://testnet.bscscan.com/address/0xE13d254A2195fdef7B83EC9Df940854B83aA3042 and MockAgentId 0xa6EE7846434C385847B4e79EF529531a1124FfF6 (block 144569571), both `exact_match` on Sourcify (BscScan verify waits on OP-8). Day cycle: keeper settled 2026-11-24 00:00 (tx 0x830521455fc7519f6c9319bc97e34007e5b9626ba9319b95d11620bd48b61d4e), commit for day 20782 (tx 0xd5fdf8645573a089c8c6fd79a7a2430cbac79b2313b6bb34d47e69dd609ec4ca); reveal on 2026-11-25 UTC, settle and score after 2026-11-26 00:00 UTC still to run
+- Finding: a fresh clone has no deployments/ folder (git keeps no empty folders) and Foundry will not create it, so the first real deploy stopped before broadcasting with "not allowed to be accessed for write operations". deployments/.gitkeep fixes it. Found on a local mainnet fork run (deploy script, real Agent ID holder, keeper over two midnights): every number matched a hand calculation.
 
 ### T-A04, Keeper script
 - Status: open
